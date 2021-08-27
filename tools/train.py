@@ -13,7 +13,7 @@ from mmcv.utils import Config, DictAction, get_git_hash
 from mmseg import __version__
 from mmseg.apis import set_random_seed, train_segmentor
 from mmseg.datasets import build_dataset
-from mmseg.models import build_segmentor
+from mmseg.models import build_segmentor, build_depther
 from mmseg.utils import collect_env, get_root_logger
 
 
@@ -128,7 +128,12 @@ def main():
     meta['seed'] = args.seed
     meta['exp_name'] = osp.basename(args.config)
 
-    model = build_segmentor(
+    # hack here
+    # model = build_segmentor(
+    #     cfg.model,
+    #     train_cfg=cfg.get('train_cfg'),
+    #     test_cfg=cfg.get('test_cfg'))
+    model = build_depther(
         cfg.model,
         train_cfg=cfg.get('train_cfg'),
         test_cfg=cfg.get('test_cfg'))
@@ -146,11 +151,7 @@ def main():
         # checkpoints as meta data
         cfg.checkpoint_config.meta = dict(
             mmseg_version=f'{__version__}+{get_git_hash()[:7]}',
-            config=cfg.pretty_text,
-            CLASSES=datasets[0].CLASSES,
-            PALETTE=datasets[0].PALETTE)
-    # add an attribute for visualization convenience
-    model.CLASSES = datasets[0].CLASSES
+            config=cfg.pretty_text)
     # passing checkpoint meta for saving best checkpoint
     meta.update(cfg.checkpoint_config.meta)
     train_segmentor(

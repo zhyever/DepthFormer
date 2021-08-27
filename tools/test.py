@@ -13,7 +13,7 @@ from mmcv.utils import DictAction
 
 from mmseg.apis import multi_gpu_test, single_gpu_test
 from mmseg.datasets import build_dataloader, build_dataset
-from mmseg.models import build_segmentor
+from mmseg.models import build_segmentor, build_depther
 
 
 def parse_args():
@@ -120,21 +120,15 @@ def main():
 
     # build the model and load checkpoint
     cfg.model.train_cfg = None
-    model = build_segmentor(cfg.model, test_cfg=cfg.get('test_cfg'))
+    # model = build_segmentor(cfg.model, test_cfg=cfg.get('test_cfg'))
+    model = build_depther(
+        cfg.model,
+        test_cfg=cfg.get('test_cfg'))
+    
     fp16_cfg = cfg.get('fp16', None)
     if fp16_cfg is not None:
         wrap_fp16_model(model)
     checkpoint = load_checkpoint(model, args.checkpoint, map_location='cpu')
-    if 'CLASSES' in checkpoint.get('meta', {}):
-        model.CLASSES = checkpoint['meta']['CLASSES']
-    else:
-        print('"CLASSES" not found in meta, use dataset.CLASSES instead')
-        model.CLASSES = dataset.CLASSES
-    if 'PALETTE' in checkpoint.get('meta', {}):
-        model.PALETTE = checkpoint['meta']['PALETTE']
-    else:
-        print('"PALETTE" not found in meta, use dataset.PALETTE instead')
-        model.PALETTE = dataset.PALETTE
 
     # clean gpu memory when starting a new evaluation.
     torch.cuda.empty_cache()

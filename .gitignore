@@ -116,3 +116,8 @@ mmseg/.mim
 
 # Pytorch
 *.pth
+
+
+
+# log and checkpoint
+nfs
