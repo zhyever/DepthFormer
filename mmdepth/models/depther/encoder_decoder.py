@@ -20,7 +20,6 @@ class DepthEncoderDecoder(BaseDepther):
     def __init__(self,
                  backbone,
                  decode_head,
-                 neck=None,
                  train_cfg=None,
                  test_cfg=None,
                  pretrained=None,
@@ -55,6 +54,8 @@ class DepthEncoderDecoder(BaseDepther):
         map of the same size as input."""
         x = self.extract_feat(img)
         out = self._decode_head_forward_test(x, img_metas)
+        # crop the pred depth to the certain range.
+        out = torch.clamp(out, min=self.decode_head.min_depth, max=self.decode_head.max_depth)
         out = resize(
             input=out,
             size=img.shape[2:],
@@ -116,15 +117,6 @@ class DepthEncoderDecoder(BaseDepther):
         """Inference with full image."""
 
         depth_pred = self.encode_decode(img, img_meta)
-        if rescale:
-            # support dynamic shape for onnx
-            size = img_meta[0]['ori_shape'][:2]
-            depth_pred = resize(
-                depth_pred,
-                size=size,
-                mode='bilinear',
-                align_corners=self.align_corners,
-                warning=False)
 
         return depth_pred
 

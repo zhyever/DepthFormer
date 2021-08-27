@@ -7,6 +7,6 @@ model = dict(
     decode_head=dict(
         min_depth=1e-3,
         max_depth=80,
-    ))
-
-optimizer = dict(type='AdamW', lr=3e-5, betas=(0.95, 0.99), weight_decay=0.01,)
+        loss_decode=dict(
+            type='SigLoss', valid_mask=True, loss_weight=1.0, min_depth=1e-3, max_depth=80)),
+    )

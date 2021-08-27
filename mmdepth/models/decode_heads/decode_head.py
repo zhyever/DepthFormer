@@ -19,7 +19,6 @@ class DepthBaseDecodeHead(BaseModule, metaclass=ABCMeta):
         channels (int): Channels after modules, before conv_seg.
         dropout_ratio (float): Ratio of dropout layer. Default: 0.1.
         conv_cfg (dict|None): Config of conv layers. Default: None.
-        norm_cfg (dict|None): Config of norm layers. Default: None.
         act_cfg (dict): Config of activation layers.
             Default: dict(type='ReLU')
         in_index (int|Sequence[int]): Input feature index. Default: -1
@@ -38,16 +37,13 @@ class DepthBaseDecodeHead(BaseModule, metaclass=ABCMeta):
             Default: None.
         align_corners (bool): align_corners argument of F.interpolate.
             Default: False.
-        init_cfg (dict or list[dict], optional): Initialization config dict.
     """
 
     def __init__(self,
                  in_channels,
                  channels,
                  *,
-                 dropout_ratio=0.1,
                  conv_cfg=None,
-                 norm_cfg=None,
                  act_cfg=dict(type='ReLU'),
                  in_index=-1,
                  input_transform=None,
@@ -57,19 +53,14 @@ class DepthBaseDecodeHead(BaseModule, metaclass=ABCMeta):
                      loss_weight=1.0),
                  sampler=None,
                  align_corners=False,
-                 init_cfg=dict(
-                     type='Normal', std=0.01, override=dict(name='conv_depth')),
                  min_depth=None,
                  max_depth=None):
-        super(DepthBaseDecodeHead, self).__init__(init_cfg)
+        super(DepthBaseDecodeHead, self).__init__()
         
-        self._init_inputs(in_channels, in_index)
         self.input_transform = input_transform
         self.in_channels = in_channels
         self.channels = channels
-        self.dropout_ratio = dropout_ratio
         self.conv_cfg = conv_cfg
-        self.norm_cfg = norm_cfg
         self.act_cfg = act_cfg
         self.in_index = in_index
         self.loss_decode = build_depth_loss(loss_decode)
@@ -82,10 +73,6 @@ class DepthBaseDecodeHead(BaseModule, metaclass=ABCMeta):
             self.sampler = None
 
         self.conv_depth = nn.Conv2d(channels, 1, kernel_size=3, padding=1, stride=1)
-        if dropout_ratio > 0:
-            self.dropout = nn.Dropout2d(dropout_ratio)
-        else:
-            self.dropout = None
         self.fp16_enabled = False
         self.relu = nn.ReLU()
 
@@ -94,13 +81,6 @@ class DepthBaseDecodeHead(BaseModule, metaclass=ABCMeta):
         s = f'input_transform={self.input_transform}, ' \
             f'align_corners={self.align_corners}'
         return s
-
-    def _init_inputs(self, in_channels, in_index):
-        """Check input.
-        """
-        assert isinstance(in_channels, (list, tuple))
-        assert isinstance(in_index, (list, tuple))
-
 
     @auto_fp16()
     @abstractmethod
@@ -146,10 +126,7 @@ class DepthBaseDecodeHead(BaseModule, metaclass=ABCMeta):
 
     def depth_pred(self, feat):
         """Prediction each pixel."""
-        if self.dropout is not None:
-            feat = self.dropout(feat)
         output = self.relu(self.conv_depth(feat)) + self.min_depth
-        output = torch.clamp(output, min=self.min_depth, max=self.max_depth)
         return output
 
     @force_fp32(apply_to=('depth_pred', ))

@@ -242,3 +242,56 @@ class DepthRandomCrop(object):
 
     def __repr__(self):
         return self.__class__.__name__ + f'(crop_size={self.crop_size})'
+
+
+@PIPELINES.register_module()
+class DepthColorAug(object):
+    """Flip the image & seg.
+    Color aug in adabins
+    """
+
+    def __init__(self, prob=None, gamma_range=[0.9, 1.1], brightness_range=[0.9, 1.1], color_range=[0.9, 1.1]):
+        self.prob = prob
+        self.gamma_range = gamma_range
+        self.brightness_range = brightness_range
+        self.color_range = color_range
+        if prob is not None:
+            assert prob >= 0 and prob <= 1
+
+    def __call__(self, results):
+        """Call function to flip bounding boxes, masks, semantic segmentation
+        maps.
+
+        Args:
+            results (dict): Result dict from loading pipeline.
+
+        Returns:
+            dict: Flipped results, 'flip', 'flip_direction' keys are added into
+                result dict.
+        """
+        aug = True if np.random.rand() < self.prob else False
+
+        if aug:
+            image = results['img']
+
+            # gamma augmentation
+            gamma = np.random.uniform(min(*self.gamma_range), max(*self.gamma_range))
+            image_aug = image ** gamma
+
+            # brightness augmentation
+            brightness = np.random.uniform(min(*self.brightness_range), max(*self.brightness_range))
+            image_aug = image_aug * brightness
+
+            # color augmentation
+            colors = np.random.uniform(min(*self.color_range), max(*self.color_range), size=3)
+            white = np.ones((image.shape[0], image.shape[1]))
+            color_image = np.stack([white * colors[i] for i in range(3)], axis=2)
+            image_aug *= color_image
+            image_aug = np.clip(image_aug, 0, 255)
+
+            results['img'] = image_aug
+
+        return results
+
+    def __repr__(self):
+        return self.__class__.__name__ + f'(prob={self.prob})'

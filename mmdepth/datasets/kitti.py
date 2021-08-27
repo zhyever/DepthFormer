@@ -72,7 +72,11 @@ class KITTIDataset(Dataset):
                  split=None,
                  data_root=None,
                  test_mode=False,
-                 depth_scale=256):
+                 depth_scale=256,
+                 garg_crop=True,
+                 eigen_crop=False,
+                 min_depth=1e-3,
+                 max_depth=80):
         self.pipeline = Compose(pipeline)
         self.img_dir = img_dir
         self.img_suffix = img_suffix
@@ -82,7 +86,10 @@ class KITTIDataset(Dataset):
         self.data_root = data_root
         self.test_mode = test_mode
         self.depth_scale = depth_scale
-        
+        self.garg_crop = garg_crop
+        self.eigen_crop = eigen_crop
+        self.min_depth = min_depth
+        self.max_depth = max_depth
 
         # join paths if data_root is specified
         if self.data_root is not None:
@@ -225,7 +232,7 @@ class KITTIDataset(Dataset):
             depth_map_gt = np.asarray(Image.open(depth_map), dtype=np.float32) / self.depth_scale
             yield depth_map_gt
     
-    # get kb cropped gt, shape 1, W, H
+    # get kb cropped gt, shape 1, H, W
     def eval_kb_crop(self, depth_gt):
         height = depth_gt.shape[0]
         width = depth_gt.shape[1]
@@ -235,6 +242,23 @@ class KITTIDataset(Dataset):
         depth_cropped = np.expand_dims(depth_cropped, axis=0)
         return depth_cropped
 
+    def eval_mask(self, depth_gt):
+        depth_gt = np.squeeze(depth_gt)
+        valid_mask = np.logical_and(depth_gt > self.min_depth, depth_gt < self.max_depth)
+        if self.garg_crop or self.eigen_crop:
+            gt_height, gt_width = depth_gt.shape
+            eval_mask = np.zeros(valid_mask.shape)
+
+            if self.garg_crop:
+                eval_mask[int(0.40810811 * gt_height):int(0.99189189 * gt_height),
+                          int(0.03594771 * gt_width):int(0.96405229 * gt_width)] = 1
+
+            elif self.eigen_crop:
+                eval_mask[int(0.3324324 * gt_height):int(0.91351351 * gt_height),
+                          int(0.0359477 * gt_width):int(0.96405229 * gt_width)] = 1
+        valid_mask = np.logical_and(valid_mask, eval_mask)
+        valid_mask = np.expand_dims(valid_mask, axis=0)
+        return valid_mask
 
     def pre_eval(self, preds, indices):
         """Collect eval result from each iteration.
@@ -258,35 +282,14 @@ class KITTIDataset(Dataset):
         pre_eval_results = []
 
         for i, (pred, index) in enumerate(zip(preds, indices)):
-            
             depth_map = osp.join(self.ann_dir,
                                self.img_infos[index]['ann']['depth_map'])
             depth_map_gt = np.asarray(Image.open(depth_map), dtype=np.float32) / self.depth_scale
             depth_map_gt = self.eval_kb_crop(depth_map_gt)
+            valid_mask = self.eval_mask(depth_map_gt)
             
-            # if i == 1:
-            #     import matplotlib.pyplot as plt
-            #     plt.subplot(2, 1, 1)
-            #     pred = torch.tensor(pred)
-            #     plt.imshow(pred.permute(1, 2, 0))
-            #     plt.subplot(2, 1, 2)
-            #     depth_map_gt = torch.tensor(depth_map_gt)
-            #     plt.imshow(depth_map_gt.squeeze())
-            #     plt.savefig("mmdepth/project/debug_imgs/test_1.png")
-            #     exit(1000)
-
-            # if pred.shape[0] != depth_map_gt.shape[0] or pred.shape[1] != depth_map_gt.shape[1]:
-            #     pred_torch = torch.tensor(pred, dtype=torch.float)
-            #     pred_torch_resized = resize(
-            #                         input=pred_torch.unsqueeze(dim=0),
-            #                         size=depth_map_gt.shape,
-            #                         mode='bilinear',
-            #                         align_corners=True)
-            #     pred_torch_resized = pred_torch_resized.squeeze()
-            #     pred = pred_torch_resized.numpy()
-
             pre_eval_results.append(
-                metrics(depth_map_gt, pred))
+                metrics(depth_map_gt[valid_mask], pred[valid_mask]))
 
         return pre_eval_results
 
