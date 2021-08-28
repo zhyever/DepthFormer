@@ -9,6 +9,16 @@ def metrics(gt, pred):
     gt = gt[mask]
     pred = pred[mask]
 
+    # TODO: hack here to eval different distance:
+    mask_1 = gt < 80
+    mask_2 = gt > 60
+    mask = np.logical_and(mask_1, mask_2)
+    gt = gt[mask]
+    pred = pred[mask]
+    if gt.shape[0] == 0:
+        return None
+
+
     thresh = np.maximum((gt / pred), (pred / gt))
     a1 = (thresh < 1.25).mean()
     a2 = (thresh < 1.25 ** 2).mean()
@@ -66,7 +76,6 @@ def pre_eval_to_metrics(pre_eval_results,
     # ([A_1, ..., A_n], ..., [D_1, ..., D_n])
     pre_eval_results = tuple(zip(*pre_eval_results))
     assert len(pre_eval_results) == 9
-
     ret_metrics = total_items_to_metrics(total_num = len(pre_eval_results[0]),
                                          a1 = sum(pre_eval_results[0]),
                                          a2 = sum(pre_eval_results[1]),

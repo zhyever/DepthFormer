@@ -20,6 +20,7 @@ class DepthEncoderDecoder(BaseDepther):
     def __init__(self,
                  backbone,
                  decode_head,
+                 neck=None,
                  train_cfg=None,
                  test_cfg=None,
                  pretrained=None,
@@ -31,6 +32,8 @@ class DepthEncoderDecoder(BaseDepther):
             backbone.pretrained = pretrained
         self.backbone = builder.build_depth_backbone(backbone)
         self._init_decode_head(decode_head)
+        if neck is not None:
+            self.neck = builder.build_depth_neck(neck)
 
         self.train_cfg = train_cfg
         self.test_cfg = test_cfg
@@ -135,6 +138,10 @@ class DepthEncoderDecoder(BaseDepther):
         Returns:
             Tensor: The output segmentation map.
         """
+        ### hack
+        #### TODO: delete hack for transformer test
+        img = torch.tensor(img)
+        img = resize(img, size=(352, 704), mode='bilinear', align_corners=True)
 
         assert self.test_cfg.mode in ['slide', 'whole']
         ori_shape = img_meta[0]['ori_shape']

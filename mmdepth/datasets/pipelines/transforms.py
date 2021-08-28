@@ -5,6 +5,9 @@ import mmcv
 import numpy as np
 from mmcv.utils import deprecated_api_warning
 from mmseg.datasets.builder import PIPELINES
+from numpy.core.fromnumeric import shape
+from mmseg.ops import resize
+import torch # hack
 
 @PIPELINES.register_module()
 class DepthKBCrop(object):

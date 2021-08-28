@@ -17,6 +17,7 @@ DEPTHER = MODELS
 DEPTHHEAD = MODELS
 DEPTHBACKBONE = MODELS
 DEPTHLOSS = MODELS
+DEPTHNECK = MODELS
 
 def build_backbone(cfg):
     """Build backbone."""
@@ -50,6 +51,10 @@ def build_segmentor(cfg, train_cfg=None, test_cfg=None):
         'test_cfg specified in both outer field and model field '
     return SEGMENTORS.build(
         cfg, default_args=dict(train_cfg=train_cfg, test_cfg=test_cfg))
+
+def build_depth_neck(cfg):
+    """Build neck."""
+    return DEPTHNECK.build(cfg)
 
 def build_depth_loss(cfg):
     """Build loss."""

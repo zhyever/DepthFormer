@@ -144,6 +144,8 @@ class KITTIDataset(Dataset):
         else:
             raise NotImplementedError 
 
+        # github issue:: make sure the same order
+        img_infos = sorted(img_infos, key=lambda x: x['filename'])
         print_log(f'Loaded {len(img_infos)} images. Totally {self.invalid_depth_num} invalid pairs are filtered', logger=get_root_logger())
         return img_infos
 
@@ -284,12 +286,22 @@ class KITTIDataset(Dataset):
         for i, (pred, index) in enumerate(zip(preds, indices)):
             depth_map = osp.join(self.ann_dir,
                                self.img_infos[index]['ann']['depth_map'])
+
             depth_map_gt = np.asarray(Image.open(depth_map), dtype=np.float32) / self.depth_scale
             depth_map_gt = self.eval_kb_crop(depth_map_gt)
+
+            # TODO: delete hack for testing transformer
+            depth_map_gt = torch.tensor(depth_map_gt)
+            depth_map_gt = depth_map_gt.unsqueeze(dim=0)
+            depth_map_gt = resize(input=depth_map_gt, size=(352, 704), mode='nearest')
+            depth_map_gt = depth_map_gt.squeeze(dim=0)
+            depth_map_gt = depth_map_gt.numpy()
+
             valid_mask = self.eval_mask(depth_map_gt)
             
-            pre_eval_results.append(
-                metrics(depth_map_gt[valid_mask], pred[valid_mask]))
+            eval = metrics(depth_map_gt[valid_mask], pred[valid_mask])
+            if eval != None:
+                pre_eval_results.append(eval)
 
         return pre_eval_results
 
