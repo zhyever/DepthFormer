@@ -4,20 +4,9 @@ import mmcv
 import numpy as np
 import torch
 
-def metrics(gt, pred):
-    mask = gt > 0
-    gt = gt[mask]
-    pred = pred[mask]
-
-    # TODO: hack here to eval different distance:
-    mask_1 = gt < 80
-    mask_2 = gt > 60
-    mask = np.logical_and(mask_1, mask_2)
-    gt = gt[mask]
-    pred = pred[mask]
+def calculate(gt, pred):
     if gt.shape[0] == 0:
-        return None
-
+        return np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan
 
     thresh = np.maximum((gt / pred), (pred / gt))
     a1 = (thresh < 1.25).mean()
@@ -34,10 +23,47 @@ def metrics(gt, pred):
     rmse_log = np.sqrt(rmse_log.mean())
 
     err = np.log(pred) - np.log(gt)
-    silog = np.sqrt(np.mean(err ** 2) - np.mean(err) ** 2) * 100
 
+    silog = np.sqrt(np.mean(err ** 2) - np.mean(err) ** 2) * 100
+    if np.isnan(silog):
+        silog = 0
+        
     log_10 = (np.abs(np.log10(gt) - np.log10(pred))).mean()
     return a1, a2, a3, abs_rel, rmse, log_10, rmse_log, silog, sq_rel
+
+def metrics(gt, pred):
+    mask = gt > 0
+    gt = gt[mask]
+    pred = pred[mask]
+
+    a1, a2, a3, abs_rel, rmse, log_10, rmse_log, silog, sq_rel = calculate(gt, pred)
+
+    # TODO: hack here to eval different distance:
+    mask_1 = gt <= 26
+    mask_2 = gt > 0
+    mask = np.logical_and(mask_1, mask_2)
+    gt_l1 = gt[mask]
+    pred_l1 = pred[mask]
+    a1_l1, a2_l1, a3_l1, abs_rel_l1, rmse_l1, log_10_l1, rmse_log_l1, silog_l1, sq_rel_l1 = calculate(gt_l1, pred_l1)
+
+    mask_1 = gt <= 52
+    mask_2 = gt > 26
+    mask = np.logical_and(mask_1, mask_2)
+    gt_l2 = gt[mask]
+    pred_l2 = pred[mask]
+    a1_l2, a2_l2, a3_l2, abs_rel_l2, rmse_l2, log_10_l2, rmse_log_l2, silog_l2, sq_rel_l2 = calculate(gt_l2, pred_l2)
+
+    mask_1 = gt <= 80
+    mask_2 = gt > 52
+    mask = np.logical_and(mask_1, mask_2)
+    gt_l3 = gt[mask]
+    pred_l3 = pred[mask]
+    a1_l3, a2_l3, a3_l3, abs_rel_l3, rmse_l3, log_10_l3, rmse_log_l3, silog_l3, sq_rel_l3 = calculate(gt_l3, pred_l3)
+
+    return a1, a2, a3, abs_rel, rmse, log_10, rmse_log, silog, sq_rel, \
+           a1_l1, a2_l1, a3_l1, abs_rel_l1, rmse_l1, log_10_l1, rmse_log_l1, silog_l1, sq_rel_l1, \
+           a1_l2, a2_l2, a3_l2, abs_rel_l2, rmse_l2, log_10_l2, rmse_log_l2, silog_l2, sq_rel_l2, \
+           a1_l3, a2_l3, a3_l3, abs_rel_l3, rmse_l3, log_10_l3, rmse_log_l3, silog_l3, sq_rel_l3
 
 def eval_metrics(gt, pred):
     mask = gt > 0
@@ -66,56 +92,31 @@ def eval_metrics(gt, pred):
                 silog=silog, sq_rel=sq_rel)
 
 
-def pre_eval_to_metrics(pre_eval_results,
-                        metrics=['mIoU'],
-                        nan_to_num=None,
-                        beta=1):
+def pre_eval_to_metrics(pre_eval_results):
 
     # convert list of tuples to tuple of lists, e.g.
     # [(A_1, B_1, C_1, D_1), ...,  (A_n, B_n, C_n, D_n)] to
     # ([A_1, ..., A_n], ..., [D_1, ..., D_n])
     pre_eval_results = tuple(zip(*pre_eval_results))
-    assert len(pre_eval_results) == 9
-    ret_metrics = total_items_to_metrics(total_num = len(pre_eval_results[0]),
-                                         a1 = sum(pre_eval_results[0]),
-                                         a2 = sum(pre_eval_results[1]),
-                                         a3 = sum(pre_eval_results[2]),
-                                         abs_rel = sum(pre_eval_results[3]),
-                                         rmse = sum(pre_eval_results[4]),
-                                         log_10 = sum(pre_eval_results[5]),
-                                         rmse_log = sum(pre_eval_results[6]),
-                                         silog = sum(pre_eval_results[7]),
-                                         sq_rel = sum(pre_eval_results[8]),)
-
-    return ret_metrics
-
-
-def total_items_to_metrics(total_num,
-                           a1,
-                           a2,
-                           a3,
-                           abs_rel,
-                           rmse,
-                           log_10,
-                           rmse_log,
-                           silog,
-                           sq_rel
-                           ):
-
     ret_metrics = OrderedDict({})
-    ret_metrics['a1'] = a1 / total_num
-    ret_metrics['a2'] = a2 / total_num
-    ret_metrics['a3'] = a3 / total_num
-    ret_metrics['abs_rel'] = abs_rel / total_num
-    ret_metrics['rmse'] = rmse / total_num
-    ret_metrics['log_10'] = log_10 / total_num
-    ret_metrics['rmse_log'] = rmse_log / total_num
-    ret_metrics['silog'] = silog / total_num
-    ret_metrics['sq_rel'] = sq_rel / total_num
+
+    level_num = len(pre_eval_results)  // 9
+    for i in range(level_num):
+        ret_metrics['a1_{}'.format("all" if i==0 else "l_{}".format(i))] = np.nanmean(pre_eval_results[i*9+0])
+        ret_metrics['a2_{}'.format("all" if i==0 else "l_{}".format(i))] = np.nanmean(pre_eval_results[i*9+1])
+        ret_metrics['a3_{}'.format("all" if i==0 else "l_{}".format(i))] = np.nanmean(pre_eval_results[i*9+2])
+        ret_metrics['abs_rel_{}'.format("all" if i==0 else "l_{}".format(i))] = np.nanmean(pre_eval_results[i*9+3])
+        ret_metrics['rmse_{}'.format("all" if i==0 else "l_{}".format(i))] = np.nanmean(pre_eval_results[i*9+4])
+        ret_metrics['log_10_{}'.format("all" if i==0 else "l_{}".format(i))] = np.nanmean(pre_eval_results[i*9+5])
+        ret_metrics['rmse_log_{}'.format("all" if i==0 else "l_{}".format(i))] = np.nanmean(pre_eval_results[i*9+6])
+        ret_metrics['silog_{}'.format("all" if i==0 else "l_{}".format(i))] = np.nanmean(pre_eval_results[i*9+7])
+        ret_metrics['sq_rel_{}'.format("all" if i==0 else "l_{}".format(i))] = np.nanmean(pre_eval_results[i*9+8])
 
     ret_metrics = {
         metric: value
         for metric, value in ret_metrics.items()
     }
-    
+
+    print(ret_metrics)
+
     return ret_metrics

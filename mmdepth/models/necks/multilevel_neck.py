@@ -35,19 +35,19 @@ class DepthMultiLevelNeck(nn.Module):
         self.num_outs = len(scales)
         self.lateral_convs = nn.ModuleList()
         self.convs = nn.ModuleList()
-        for in_channel in in_channels:
+        for in_channel, out_channel in zip(in_channels, out_channels):
             self.lateral_convs.append(
                 ConvModule(
                     in_channel,
-                    out_channels,
+                    out_channel,
                     kernel_size=1,
                     norm_cfg=norm_cfg,
                     act_cfg=act_cfg))
-        for _ in range(self.num_outs):
+        for in_channel, out_channel in zip(out_channels, out_channels):
             self.convs.append(
                 ConvModule(
-                    out_channels,
-                    out_channels,
+                    in_channel,
+                    out_channel,
                     kernel_size=3,
                     padding=1,
                     stride=1,

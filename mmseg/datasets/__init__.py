@@ -10,7 +10,7 @@ from .hrf import HRFDataset
 from .pascal_context import PascalContextDataset, PascalContextDataset59
 from .stare import STAREDataset
 from .voc import PascalVOCDataset
-from mmdepth.datasets import KITTIDataset
+from mmdepth.datasets import KITTIDataset, NYUDataset
 
 __all__ = [
     'CustomDataset', 'build_dataloader', 'ConcatDataset', 'RepeatDataset',
@@ -19,5 +19,5 @@ __all__ = [
     'PascalContextDataset59', 'ChaseDB1Dataset', 'DRIVEDataset', 'HRFDataset',
     'STAREDataset',
 
-    'KITTIDataset'
+    'KITTIDataset', 'NYUDataset'
 ]

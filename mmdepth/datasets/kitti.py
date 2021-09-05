@@ -11,7 +11,7 @@ from mmcv.utils import print_log
 from prettytable import PrettyTable
 from torch.utils.data import Dataset
 
-from mmdepth.core import pre_eval_to_metrics, total_items_to_metrics, metrics, eval_metrics
+from mmdepth.core import pre_eval_to_metrics, metrics, eval_metrics
 # from mmseg.core import eval_metrics, intersect_and_union, pre_eval_to_metrics
 from mmseg.utils import get_root_logger
 from mmseg.datasets.builder import DATASETS
@@ -28,26 +28,22 @@ import torch
 class KITTIDataset(Dataset):
     """KITTI dataset for semantic segmentation. An example of file structure
     is as followed.
-
     .. code-block:: none
-
         ├── data
         │   ├── KITTI
         │   │   ├── kitti_eigen_train.txt
         │   │   ├── kitti_eigen_test.txt
-        │   │   ├── data
+        │   │   ├── input (RGB)
         │   │   │   ├── date_1
         │   │   │   ├── date_2
         │   │   │   |   ...
         │   │   │   |   ...
         |   │   ├── gt_depth
         │   │   │   ├── date_drive_number_sync
-
     split file format:
     input_image: 2011_09_26/2011_09_26_drive_0002_sync/image_02/data/0000000069.png 
     gt_depth:    2011_09_26_drive_0002_sync/proj_depth/groundtruth/image_02/0000000069.png 
     focal:       721.5377
-
     Args:
         pipeline (list[dict]): Processing pipeline
         img_dir (str): Path to image directory
@@ -104,6 +100,7 @@ class KITTIDataset(Dataset):
         self.img_infos = self.load_annotations(self.img_dir, self.img_suffix,
                                                self.ann_dir,
                                                self.seg_map_suffix, self.split)
+        
 
     def __len__(self):
         """Total number of samples of data."""
@@ -112,7 +109,6 @@ class KITTIDataset(Dataset):
     def load_annotations(self, img_dir, img_suffix, ann_dir, seg_map_suffix,
                          split):
         """Load annotation from directory.
-
         Args:
             img_dir (str): Path to image directory
             img_suffix (str): Suffix of images.
@@ -121,7 +117,6 @@ class KITTIDataset(Dataset):
             split (str|None): Split txt file. If split is specified, only file
                 with suffix in the splits will be loaded. Otherwise, all images
                 in img_dir/ann_dir will be loaded. Default: None
-
         Returns:
             list[dict]: All image info of dataset.
         """
@@ -151,10 +146,8 @@ class KITTIDataset(Dataset):
 
     def get_ann_info(self, idx):
         """Get annotation by index.
-
         Args:
             idx (int): Index of data.
-
         Returns:
             dict: Annotation info of specified index.
         """
@@ -170,10 +163,8 @@ class KITTIDataset(Dataset):
 
     def __getitem__(self, idx):
         """Get training/test data after pipeline.
-
         Args:
             idx (int): Index of data.
-
         Returns:
             dict: Training/test data (with annotation if `test_mode` is set
                 False).
@@ -186,10 +177,8 @@ class KITTIDataset(Dataset):
 
     def prepare_train_img(self, idx):
         """Get training data and annotations after pipeline.
-
         Args:
             idx (int): Index of data.
-
         Returns:
             dict: Training data and annotation after pipeline with new keys
                 introduced by pipeline.
@@ -203,10 +192,8 @@ class KITTIDataset(Dataset):
 
     def prepare_test_img(self, idx):
         """Get testing data after pipeline.
-
         Args:
             idx (int): Index of data.
-
         Returns:
             dict: Testing data after pipeline with new keys introduced by
                 pipeline.
@@ -264,13 +251,11 @@ class KITTIDataset(Dataset):
 
     def pre_eval(self, preds, indices):
         """Collect eval result from each iteration.
-
         Args:
             preds (list[torch.Tensor] | torch.Tensor): the segmentation logit
                 after argmax, shape (N, H, W).
             indices (list[int] | int): the prediction related ground truth
                 indices.
-
         Returns:
             list[torch.Tensor]: (area_intersect, area_union, area_prediction,
                 area_ground_truth).
@@ -282,6 +267,7 @@ class KITTIDataset(Dataset):
             preds = [preds]
 
         pre_eval_results = []
+        pre_eval_preds = []
 
         for i, (pred, index) in enumerate(zip(preds, indices)):
             depth_map = osp.join(self.ann_dir,
@@ -291,30 +277,30 @@ class KITTIDataset(Dataset):
             depth_map_gt = self.eval_kb_crop(depth_map_gt)
 
             # TODO: delete hack for testing transformer
-            depth_map_gt = torch.tensor(depth_map_gt)
-            depth_map_gt = depth_map_gt.unsqueeze(dim=0)
-            depth_map_gt = resize(input=depth_map_gt, size=(352, 704), mode='nearest')
-            depth_map_gt = depth_map_gt.squeeze(dim=0)
-            depth_map_gt = depth_map_gt.numpy()
+            # depth_map_gt = torch.tensor(depth_map_gt)
+            # depth_map_gt = depth_map_gt.unsqueeze(dim=0)
+            # depth_map_gt = resize(input=depth_map_gt, size=(352, 704), mode='nearest')
+            # depth_map_gt = depth_map_gt.squeeze(dim=0)
+            # depth_map_gt = depth_map_gt.numpy()
 
             valid_mask = self.eval_mask(depth_map_gt)
             
             eval = metrics(depth_map_gt[valid_mask], pred[valid_mask])
-            if eval != None:
-                pre_eval_results.append(eval)
+            pre_eval_results.append(eval)
 
-        return pre_eval_results
+            # save prediction results
+            pre_eval_preds.append(pred)
+
+        return pre_eval_results, pre_eval_preds
 
     def evaluate(self, results, metric='eigen', logger=None, **kwargs):
         """Evaluate the dataset.
-
         Args:
             results (list[tuple[torch.Tensor]] | list[str]): per image pre_eval
                  results or predict segmentation map for computing evaluation
                  metric.
             logger (logging.Logger | None | str): Logger used for printing
                 related information during evaluation. Default: None.
-
         Returns:
             dict[str, float]: Default metrics.
         """
@@ -329,24 +315,35 @@ class KITTIDataset(Dataset):
                 results)
         # test a list of pre_eval_results
         else:
-            ret_metrics = pre_eval_to_metrics(results, metric)
+            ret_metrics = pre_eval_to_metrics(results)
+        
+        ret_metric_names = []
+        ret_metric_values = []
+        for ret_metric, ret_metric_value in ret_metrics.items():
+            ret_metric_names.append(ret_metric)
+            ret_metric_values.append(ret_metric_value)
 
-        # summary table
-        ret_metrics_summary = OrderedDict({
-            ret_metric: np.round(np.nanmean(ret_metric_value), 4)
-            for ret_metric, ret_metric_value in ret_metrics.items()
-        })
+        num_table = len(ret_metrics) // 9
+        for i in range(num_table):
+            names = ret_metric_names[i*9: i*9 + 9]
+            values = ret_metric_values[i*9: i*9 + 9]
 
-        # for logger
-        summary_table_data = PrettyTable()
-        for key, val in ret_metrics_summary.items():
-            summary_table_data.add_column(key, [val])
+            # summary table
+            ret_metrics_summary = OrderedDict({
+                ret_metric: np.round(np.nanmean(ret_metric_value), 4)
+                for ret_metric, ret_metric_value in zip(names, values)
+            })
 
-        print_log('Summary:', logger)
-        print_log('\n' + summary_table_data.get_string(), logger=logger)
+            # for logger
+            summary_table_data = PrettyTable()
+            for key, val in ret_metrics_summary.items():
+                summary_table_data.add_column(key, [val])
+
+            print_log('Summary:', logger)
+            print_log('\n' + summary_table_data.get_string(), logger=logger)
 
         # each metric dict
-        for key, value in ret_metrics_summary.items():
+        for key, value in ret_metrics.items():
             eval_results[key] = value
 
         return eval_results

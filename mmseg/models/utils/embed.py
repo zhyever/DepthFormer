@@ -72,6 +72,17 @@ class PatchEmbed(BaseModule):
             padding=padding,
             dilation=dilation)
 
+        # TODO: remove hack to 50% overlap
+        # self.projection = build_conv_layer(
+        #     dict(type=conv_type),
+        #     in_channels=in_channels,
+        #     out_channels=embed_dims,
+        #     kernel_size=kernel_size,
+        #     # stride=stride,
+        #     stride=(4, 2),
+        #     padding=padding,
+        #     dilation=dilation)
+
         if norm_cfg is not None:
             self.norm = build_norm_layer(norm_cfg, embed_dims)[1]
         else:

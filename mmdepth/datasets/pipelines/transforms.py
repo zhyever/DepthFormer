@@ -10,6 +10,44 @@ from mmseg.ops import resize
 import torch # hack
 
 @PIPELINES.register_module()
+class DepthNYUCrop(object):
+    """NYU standard krop when training monocular depth estimation on NYU dataset.
+
+    Args:
+        No
+    """
+
+    def __init__(self, depth=False):
+        self.depth = depth
+
+    def __call__(self, results):
+        """Call function to load multiple types annotations.
+
+        Args:
+            results (dict): Result dict from :obj:`mmseg.CustomDataset`.
+
+        Returns:
+            dict: The dict contains loaded semantic segmentation annotations.
+        """
+
+        
+        if self.depth:
+            depth_cropped = results["depth_gt"][45: 472, 43: 608]
+            results["depth_gt"] = depth_cropped
+            results['depth_fields'].append('depth_shape')
+            results["depth_shape"] = results["depth_gt"].shape
+
+        img_cropped = results["img"][45: 472, 43: 608]
+        results["img"] = img_cropped
+        results["ori_shape"] = img_cropped.shape
+        
+        return results
+
+    def __repr__(self):
+        repr_str = self.__class__.__name__
+        return repr_str
+
+@PIPELINES.register_module()
 class DepthKBCrop(object):
     """KB standard krop when training monocular depth estimation on KITTI dataset.
 

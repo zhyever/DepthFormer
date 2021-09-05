@@ -8,6 +8,26 @@ from mmseg.models.builder import DEPTHHEAD
 from .decode_head import DepthBaseDecodeHead
 import torch.nn.functional as F
 
+class UpFusion(nn.Sequential):
+    # head input channels, right now channels(need to concate with head input channels), target channels
+    def __init__(self, in_channel, up_channel_temp, output_features):
+        super(UpFusion, self).__init__()
+        self.conv_fusion = ConvModule(in_channel + output_features, output_features, kernel_size=3, stride=1, padding=1)
+        self.identify = ConvModule(up_channel_temp, output_features, kernel_size=3, stride=1, padding=1)
+        self.final = ConvModule(output_features, output_features, kernel_size=3, stride=1, padding=1)
+        self.leakyreluA = nn.LeakyReLU(0.2)
+        self.leakyreluB = nn.LeakyReLU(0.2)
+
+    def forward(self, x, skip_feat):
+        x = self.identify(x)
+        up_x = F.interpolate(x, size=[skip_feat.size(2), skip_feat.size(3)], mode='bilinear', align_corners=True)
+        plus_with = self.conv_fusion(torch.cat([up_x, skip_feat], dim=1))
+        res = up_x + self.leakyreluA(plus_with)
+        res = self.final(res)
+        res = self.leakyreluB(plus_with)
+        return res
+
+
 class UpSample(nn.Sequential):
     def __init__(self, skip_input, output_features):
         super(UpSample, self).__init__()        
@@ -36,10 +56,12 @@ class UpsampleHead(DepthBaseDecodeHead):
 
     def __init__(self,
                  up_sample_channels=[2048, 1024, 512, 256, 128],
+                 att_fusion=False,
                  **kwargs):
         super(UpsampleHead, self).__init__(**kwargs)
         # in_channels=[2048, 1024, 512, 256, 64],
         # in_index=[0, 1, 2, 3, 4],
+        self.att_fusion = att_fusion
         self.up_sample_channels = up_sample_channels
         self.conv_list = nn.ModuleList()
         up_channel_temp = 0
@@ -47,7 +69,10 @@ class UpsampleHead(DepthBaseDecodeHead):
             if index == 0:
                 self.conv_list.append(ConvModule(in_channels=in_channel, out_channels=up_channel, kernel_size=1, stride=1, padding=0))
             else:
-                self.conv_list.append(UpSample(skip_input=in_channel + up_channel_temp, output_features=up_channel))
+                if self.att_fusion == True: # res up sample
+                    self.conv_list.append(UpFusion(in_channel, up_channel_temp, up_channel))
+                else:
+                    self.conv_list.append(UpSample(skip_input=in_channel + up_channel_temp, output_features=up_channel))
             # save earlier fusion target
             up_channel_temp = up_channel
 

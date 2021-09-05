@@ -46,7 +46,6 @@ class DepthLoadAnnotations(object):
         else:
             filename = results['ann_info']['depth_map']
 
-
         depth_gt = np.asarray(Image.open(filename), dtype=np.float32) / results['depth_scale']
         
         results['depth_gt'] = depth_gt

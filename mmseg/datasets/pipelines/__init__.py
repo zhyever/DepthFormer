@@ -8,7 +8,9 @@ from .transforms import (CLAHE, AdjustGamma, Normalize, Pad,
                          PhotoMetricDistortion, RandomCrop, RandomFlip,
                          RandomRotate, Rerange, Resize, RGB2Gray, SegRescale)
 
-from mmdepth.datasets.pipelines import DepthLoadAnnotations, DepthKBCrop, DepthRandomRotate, DepthRandomFlip, DepthRandomCrop, DepthDefaultFormatBundle
+from mmdepth.datasets.pipelines import DepthLoadAnnotations, DepthKBCrop, \
+DepthRandomRotate, DepthRandomFlip, DepthRandomCrop, DepthDefaultFormatBundle, \
+DepthNYUCrop
 
 # from .loading import DepthLoadAnnotations
 # from .transforms import DepthKBCrop, DepthRandomRotate, DepthRandomFlip, DepthRandomCrop
@@ -21,5 +23,6 @@ __all__ = [
     'Normalize', 'SegRescale', 'PhotoMetricDistortion', 'RandomRotate',
     'AdjustGamma', 'CLAHE', 'Rerange', 'RGB2Gray',
 
-    'DepthLoadAnnotations', 'DepthKBCrop', 'DepthRandomRotate', 'DepthRandomFlip', 'DepthRandomCrop', 'DepthDefaultFormatBundle'
+    'DepthLoadAnnotations', 'DepthKBCrop', 'DepthRandomRotate', 'DepthRandomFlip', 'DepthRandomCrop', 'DepthDefaultFormatBundle',
+    'DepthNYUCrop'
 ]

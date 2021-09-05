@@ -10,6 +10,7 @@ from mmcv.engine import collect_results_cpu, collect_results_gpu
 from mmcv.image import tensor2imgs
 from mmcv.runner import get_dist_info
 
+import os
 
 def np2tmp(array, temp_file_name=None, tmpdir=None):
     """Save ndarray to local numpy file.
@@ -99,7 +100,7 @@ def single_gpu_test(model,
         if pre_eval:
             # TODO: adapt samples_per_gpu > 1.
             # only samples_per_gpu=1 valid now
-            result = dataset.pre_eval(result, indices=batch_indices)
+            result, result_depth = dataset.pre_eval(result, indices=batch_indices)
 
         results.extend(result)
 
@@ -118,16 +119,22 @@ def single_gpu_test(model,
 
                 if out_dir:
                     out_file = osp.join(out_dir, img_meta['ori_filename'])
+
+                    # mkdir here
+                    splits = out_file.split("/")
+                    new_file_path = ""
+                    for i in splits[:-1]:
+                        new_file_path += (i + "/")
+                    new_file_path = new_file_path[:-1]
+                    os.makedirs(new_file_path, exist_ok=True)
                 else:
                     out_file = None
 
                 model.module.show_result(
                     img_show,
-                    result,
-                    palette=dataset.PALETTE,
+                    result_depth,
                     show=show,
-                    out_file=out_file,
-                    opacity=opacity)
+                    out_file=out_file)
 
         batch_size = len(result)
         for _ in range(batch_size):
@@ -215,7 +222,7 @@ def multi_gpu_test(model,
         if pre_eval:
             # TODO: adapt samples_per_gpu > 1.
             # only samples_per_gpu=1 valid now
-            result = dataset.pre_eval(result, indices=batch_indices)
+            result, _ = dataset.pre_eval(result, indices=batch_indices)
 
         results.extend(result)
 

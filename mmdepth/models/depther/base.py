@@ -8,6 +8,7 @@ import numpy as np
 import torch
 import torch.distributed as dist
 from mmcv.runner import BaseModule, auto_fp16
+import matplotlib.pyplot as plt
 
 
 class BaseDepther(BaseModule, metaclass=ABCMeta):
@@ -193,12 +194,10 @@ class BaseDepther(BaseModule, metaclass=ABCMeta):
     def show_result(self,
                     img,
                     result,
-                    palette=None,
                     win_name='',
                     show=False,
                     wait_time=0,
-                    out_file=None,
-                    opacity=0.5):
+                    out_file=None):
         """Draw `result` over `img`.
 
         Args:
@@ -223,34 +222,17 @@ class BaseDepther(BaseModule, metaclass=ABCMeta):
         """
         img = mmcv.imread(img)
         img = img.copy()
-        seg = result[0]
-        if palette is None:
-            if self.PALETTE is None:
-                palette = np.random.randint(
-                    0, 255, size=(len(self.CLASSES), 3))
-            else:
-                palette = self.PALETTE
-        palette = np.array(palette)
-        assert palette.shape[0] == len(self.CLASSES)
-        assert palette.shape[1] == 3
-        assert len(palette.shape) == 2
-        assert 0 < opacity <= 1.0
-        color_seg = np.zeros((seg.shape[0], seg.shape[1], 3), dtype=np.uint8)
-        for label, color in enumerate(palette):
-            color_seg[seg == label, :] = color
-        # convert to BGR
-        color_seg = color_seg[..., ::-1]
-
-        img = img * (1 - opacity) + color_seg * opacity
-        img = img.astype(np.uint8)
-        # if out_file specified, do not show image in window
-        if out_file is not None:
-            show = False
+        depth = result[0]
 
         if show:
             mmcv.imshow(img, win_name, wait_time)
         if out_file is not None:
-            mmcv.imwrite(img, out_file)
+            plt.subplot(2, 1, 1)
+            plt.imshow(img)
+            plt.subplot(2, 1, 2)
+            plt.imshow(depth.squeeze())
+            plt.savefig(out_file)
+            # mmcv.imwrite(img, out_file)
 
         if not (show or out_file):
             warnings.warn('show==False and out_file is not specified, only '
