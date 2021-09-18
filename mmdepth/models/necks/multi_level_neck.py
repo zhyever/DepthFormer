@@ -62,16 +62,12 @@ class DepthMultiLevelNeck(nn.Module):
 
     def forward(self, inputs):
         assert len(inputs) == len(self.in_channels)
-        inputs = [
-            lateral_conv(inputs[i])
-            for i, lateral_conv in enumerate(self.lateral_convs)
-        ]
-        # for len(inputs) not equal to self.num_outs
-        if len(inputs) == 1:
-            inputs = [inputs[0] for _ in range(self.num_outs)]
         outs = []
         for i in range(self.num_outs):
-            x_resize = resize(
-                inputs[i], scale_factor=self.scales[i], mode='bilinear')
-            outs.append(self.convs[i](x_resize))
+            if self.scales[i] != 1:
+                x_resize = resize(
+                    inputs[i], scale_factor=self.scales[i], mode='bilinear')
+            else:
+                x_resize = inputs[i]
+            outs.append(x_resize)
         return tuple(outs)

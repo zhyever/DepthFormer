@@ -9,6 +9,7 @@ import torch
 import torch.distributed as dist
 from mmcv.runner import BaseModule, auto_fp16
 import matplotlib.pyplot as plt
+import matplotlib
 
 
 class BaseDepther(BaseModule, metaclass=ABCMeta):
@@ -191,13 +192,42 @@ class BaseDepther(BaseModule, metaclass=ABCMeta):
 
         return loss, log_vars
 
+    # color the depth, kitti magma_r, nyu jet
+    def colorize(self, value, cmap='jet'):
+        # vmin=self.decode_head.min_depth
+        # vmax=self.decode_head.max_depth
+
+        vmin=1e-3
+        vmax=10
+
+        value[value<=vmin]=vmin
+
+        # normalize
+        vmin = value.min() if vmin is None else vmin
+        vmax = value.max() if vmax is None else vmax
+
+        if vmin != vmax:
+            value = (value - vmin) / (vmax - vmin)  # vmin..vmax
+        else:
+            # Avoid 0-division
+            value = value * 0.
+
+        cmapper = matplotlib.cm.get_cmap(cmap)
+        value = cmapper(value, bytes=True)  # ((1)xhxwx4)
+
+        value = value[:, :, :, :3] # bgr -> rgb
+        rgb_value = value[..., ::-1]
+
+        return rgb_value
+
     def show_result(self,
                     img,
                     result,
                     win_name='',
                     show=False,
                     wait_time=0,
-                    out_file=None):
+                    out_file=None,
+                    format_only=False):
         """Draw `result` over `img`.
 
         Args:
@@ -226,15 +256,40 @@ class BaseDepther(BaseModule, metaclass=ABCMeta):
 
         if show:
             mmcv.imshow(img, win_name, wait_time)
-        if out_file is not None:
-            plt.subplot(2, 1, 1)
-            plt.imshow(img)
-            plt.subplot(2, 1, 2)
-            plt.imshow(depth.squeeze())
-            plt.savefig(out_file)
-            # mmcv.imwrite(img, out_file)
+
+        if format_only:
+            if out_file is not None:
+                depth = depth
+                mmcv.imwrite(depth.squeeze(), out_file)
+        else:
+            if out_file is not None:
+                depth = self.colorize(depth)
+                # mmcv.imwrite(img, out_file)
+                mmcv.imwrite(depth.squeeze(), out_file)
+        
+        # hack to show colored gt
+        # if out_file is not None:
+        #     from PIL import Image
+
+        #     gt_file = out_file[23:]
+        #     filename = gt_file.split("/")[-1]
+        #     depthname = "sync_depth" + filename[3:-4] + ".png"
+
+        #     items = gt_file.split("/")[:-1]
+        #     new_file_name = ""
+        #     for item in items:
+        #         new_file_name += (item + "/")
+            
+        #     new_file_name += depthname
+        #     new_file_name = "/" + new_file_name
+        #     depth_gt = np.asarray(Image.open(new_file_name), dtype=np.float32) / 1000
+
+        #     depth_gt = np.expand_dims(depth_gt, axis=0)
+
+        #     depth_gt = self.colorize(depth_gt)
+        #     mmcv.imwrite(depth_gt.squeeze(), out_file)
 
         if not (show or out_file):
             warnings.warn('show==False and out_file is not specified, only '
-                          'result image will be returned')
-            return img
+                          'result depth will be returned')
+            return depth

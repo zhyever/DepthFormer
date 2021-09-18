@@ -19,7 +19,8 @@ train_pipeline = [
 ]
 test_pipeline = [
     dict(type='LoadImageFromFile'),
-    dict(type='DepthNYUCrop', depth=False),
+    # dict(type='DepthNYUCrop', depth=False),
+    # dict(type='DepthNYUTestCrop'),
     dict(
         type='MultiScaleFlipAug',
         img_scale=(0, 0),

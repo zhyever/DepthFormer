@@ -1,27 +1,30 @@
 _base_ = [
     '../_base_/models/swin_base.py', '../_base_/datasets/nyu.py',
-    '../_base_/default_runtime.py', '../_base_/schedules/schedule_cos20x.py'
+    '../_base_/iter_runtime.py', '../_base_/schedules/schedule_cos24_iter.py'
 ]
 
 model = dict(
-    pretrained='./checkpoints/swin_base_patch4_window7_224_22k.pth', # noqa
+    pretrained='./checkpoints/swin_base_patch4_window12_384_22k.pth', # noqa
     backbone=dict(
+        pretrain_img_size=384,
         embed_dims=128,
         depths=[2, 2, 18, 2],
-        num_heads=[4, 8, 16, 32]),
+        num_heads=[4, 8, 16, 32],
+        window_size=12),
     neck=dict(
         type='DepthMultiLevelNeck',
         in_channels=[128, 256, 512, 1024],
         out_channels=[128, 256, 512, 1024],
         scales=[1, 1, 1, 1]),
     decode_head=dict(
-        type="BaseSwinUpsampleHead",
+        type='UpsampleHead',
         in_channels=[1024, 512, 256, 128],
-        in_index=[0, 1, 2, 3],
+        in_index=[0, 1, 2, 3, 4], # no use, align to mmseg.
         up_sample_channels=[1024, 512, 256, 128],
         channels=128, # last one
         min_depth=1e-3,
-        max_depth=10
+        max_depth=10,
+        att_fusion=True
     ))
 
 # AdamW optimizer, no weight decay for position embedding & layer norm
@@ -42,3 +45,5 @@ data = dict(
     samples_per_gpu=2,
     workers_per_gpu=2,
     )
+
+find_unused_parameters=True

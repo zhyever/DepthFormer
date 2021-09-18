@@ -1,5 +1,6 @@
 #! /bin/sh
 
-./tools/dist_train.sh mmdepth/configs/conv_swin/convswin_interaction_fusion_cos20x.py  8 --work-dir nfs/lzy/convswin_interaction_fusion
-./tools/dist_train.sh mmdepth/configs/swin/swin_cos20x.py  8 --work-dir nfs/lzy/swin_final
-./tools/dist_train.sh mmdepth/configs/conv_swin/convswin_fusion_cos20x.py  8 --work-dir nfs/lzy/convswin_fusion
+
+./tools/dist_train.sh mmdepth/configs/new_exps/nyu_convswin_tiny_unet3.py 8 --work-dir nfs/lzy/nyu_convswin_tiny_unet3_1
+./tools/dist_train.sh mmdepth/configs/new_exps/nyu_convswin_tiny_unet3.py 8 --work-dir nfs/lzy/nyu_convswin_tiny_unet3_2
+./tools/dist_train.sh mmdepth/configs/new_exps/nyu_swin_tiny_baseline.py 8 --work-dir nfs/lzy/nyu_swin_tiny_baseline_1

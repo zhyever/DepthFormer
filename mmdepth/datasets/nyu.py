@@ -207,10 +207,10 @@ class NYUDataset(Dataset):
             yield depth_map_gt
 
     # get nyu cropped gt, shape 1, H, W
-    def eval_nyu_crop(self, depth_gt):
-        depth_cropped = depth_gt[45: 472, 43: 608]
-        depth_cropped = np.expand_dims(depth_cropped, axis=0)
-        return depth_cropped
+    # def eval_nyu_crop(self, depth_gt):
+    #     depth_cropped = depth_gt[45:471, 41:601]
+    #     depth_cropped = np.expand_dims(depth_cropped, axis=0)
+    #     return depth_cropped
 
     def eval_mask(self, depth_gt):
         depth_gt = np.squeeze(depth_gt)
@@ -224,6 +224,7 @@ class NYUDataset(Dataset):
                           int(0.03594771 * gt_width):int(0.96405229 * gt_width)] = 1
 
             elif self.eigen_crop:
+                # eval_mask = np.ones(valid_mask.shape)
                 eval_mask[45:471, 41:601] = 1
 
         valid_mask = np.logical_and(valid_mask, eval_mask)
@@ -254,15 +255,8 @@ class NYUDataset(Dataset):
             depth_map = self.img_infos[index]['ann']['depth_map']
 
             depth_map_gt = np.asarray(Image.open(depth_map), dtype=np.float32) / self.depth_scale
-            depth_map_gt = self.eval_nyu_crop(depth_map_gt)
-
-            # TODO: delete hack for testing transformer
-            # depth_map_gt = torch.tensor(depth_map_gt)
-            # depth_map_gt = depth_map_gt.unsqueeze(dim=0)
-            # depth_map_gt = resize(input=depth_map_gt, size=(352, 704), mode='nearest')
-            # depth_map_gt = depth_map_gt.squeeze(dim=0)
-            # depth_map_gt = depth_map_gt.numpy()
-
+            depth_map_gt = np.expand_dims(depth_map_gt, axis=0)
+            # depth_map_gt = self.eval_nyu_crop(depth_map_gt)
             valid_mask = self.eval_mask(depth_map_gt)
             
             eval = metrics(depth_map_gt[valid_mask], pred[valid_mask])

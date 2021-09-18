@@ -1,3 +1,3 @@
 from .upsample_head import UpsampleHead
 from .adabins_head import AdabinsHead
-from .base_swin_head import BaseSwinUpsampleHead
+from .unet3_head import Unet3UpsampleHead

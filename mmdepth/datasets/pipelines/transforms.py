@@ -40,7 +40,6 @@ class DepthNYUCrop(object):
         img_cropped = results["img"][45: 472, 43: 608]
         results["img"] = img_cropped
         results["ori_shape"] = img_cropped.shape
-        
         return results
 
     def __repr__(self):

@@ -98,6 +98,7 @@ class KITTIDataset(Dataset):
 
         # load annotations
         self.img_infos = self.load_annotations(self.img_dir, self.img_suffix,
+                                            #    self.ann_dir if test_mode!=True else None,
                                                self.ann_dir,
                                                self.seg_map_suffix, self.split)
         
@@ -137,6 +138,7 @@ class KITTIDataset(Dataset):
                     img_info['filename'] = img_name
                     img_infos.append(img_info)
         else:
+            print("Split is None, ERROR")
             raise NotImplementedError 
 
         # github issue:: make sure the same order
@@ -204,9 +206,10 @@ class KITTIDataset(Dataset):
         self.pre_pipeline(results)
         return self.pipeline(results)
 
-    def format_results(self, results, imgfile_prefix, indices=None, **kwargs):
+    def format_results(self, results, imgfile_prefix=None, indices=None, **kwargs):
         """Place holder to format result to dataset specific output."""
-        raise NotImplementedError
+        results[0] = (results[0] * self.depth_scale).astype(np.uint16)
+        return results
 
     def get_gt_depth_maps(self, efficient_test=None):
         """Get ground truth segmentation maps for evaluation."""
@@ -275,14 +278,6 @@ class KITTIDataset(Dataset):
 
             depth_map_gt = np.asarray(Image.open(depth_map), dtype=np.float32) / self.depth_scale
             depth_map_gt = self.eval_kb_crop(depth_map_gt)
-
-            # TODO: delete hack for testing transformer
-            # depth_map_gt = torch.tensor(depth_map_gt)
-            # depth_map_gt = depth_map_gt.unsqueeze(dim=0)
-            # depth_map_gt = resize(input=depth_map_gt, size=(352, 704), mode='nearest')
-            # depth_map_gt = depth_map_gt.squeeze(dim=0)
-            # depth_map_gt = depth_map_gt.numpy()
-
             valid_mask = self.eval_mask(depth_map_gt)
             
             eval = metrics(depth_map_gt[valid_mask], pred[valid_mask])
@@ -386,3 +381,12 @@ class KITTIDataset(Dataset):
 #     # plt.subplot(2, 1, 2)
 #     # plt.imshow(item["depth_gt"].data.squeeze())
 #     plt.savefig("mmdepth/project/debug_imgs/test.png")
+
+    # import os
+
+    # files = os.listdir("/mnt/10-5-108-187/lizhenyu1/data_depth_annotated/test_images")
+    # with open("/mnt/10-5-108-187/lizhenyu1/data_depth_annotated/benchmark_test_split.txt", "w+") as f:
+    #     for i in files:
+    #         split_str = i
+    #         f.write(split_str + "\n")
+        

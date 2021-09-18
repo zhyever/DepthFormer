@@ -23,10 +23,10 @@ test_pipeline = [
     dict(
         type='MultiScaleFlipAug',
         img_scale=(352, 1216),
-        # flip=True,
-        # flip_direction='horizontal',
+        flip=True,
+        flip_direction='horizontal',
         transforms=[
-            # dict(type='RandomFlip', direction='horizontal'),
+            dict(type='RandomFlip', direction='horizontal'),
             dict(type='Normalize', **img_norm_cfg),
             dict(type='ImageToTensor', keys=['img']),
             dict(type='Collect', keys=['img']),

@@ -142,7 +142,6 @@ class DepthEncoderDecoder(BaseDepther):
         #### TODO: delete hack for transformer test
         # img = torch.tensor(img)
         # img = resize(img, size=(352, 704), mode='bilinear', align_corners=True)
-
         assert self.test_cfg.mode in ['slide', 'whole']
         ori_shape = img_meta[0]['ori_shape']
         assert all(_['ori_shape'] == ori_shape for _ in img_meta)

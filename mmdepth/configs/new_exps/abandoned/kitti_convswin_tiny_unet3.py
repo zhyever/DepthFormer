@@ -1,6 +1,6 @@
 _base_ = [
-    '../_base_/models/convswin_base.py', '../_base_/datasets/kitti.py',
-    '../_base_/default_runtime.py', '../_base_/schedules/schedule_cos20x.py'
+    '../_base_/models/convswin_unet3.py', '../_base_/datasets/kitti.py',
+    '../_base_/iter_runtime.py', '../_base_/schedules/schedule_cos24_iter.py'
 ]
 
 model = dict(
@@ -14,15 +14,9 @@ model = dict(
         drop_path_rate=0.3,
         patch_norm=True,
         pretrain_style='official'),
-    neck=dict(
-        type='DepthFusionMultiLevelNeck',
-        in_channels=[64, 96, 192, 384, 768],
-        out_channels=[64, 96, 192, 384, 768],
-        scales=[1, 1, 1, 1, 1],
-        embedding_dim=64),
     decode_head=dict(
         min_depth=1e-3,
-        max_depth=80
+        max_depth=80,
     ))
 
 # AdamW optimizer, no weight decay for position embedding & layer norm
@@ -39,9 +33,13 @@ optimizer = dict(
 
 
 # By default, models are trained on 8 GPUs with 2 images per GPU
+# data = dict(
+#     samples_per_gpu=8,
+#     workers_per_gpu=8,
+#     )
 data = dict(
-    samples_per_gpu=8,
-    workers_per_gpu=8,
+    samples_per_gpu=2,
+    workers_per_gpu=2,
     )
 
 find_unused_parameters=True

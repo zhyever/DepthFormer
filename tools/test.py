@@ -15,6 +15,7 @@ from mmseg.apis import multi_gpu_test, single_gpu_test
 from mmseg.datasets import build_dataloader, build_dataset
 from mmseg.models import build_segmentor, build_depther
 
+from tools.adabins_load import load_checkpoint_adabins
 
 def parse_args():
     parser = argparse.ArgumentParser(
@@ -128,7 +129,12 @@ def main():
     fp16_cfg = cfg.get('fp16', None)
     if fp16_cfg is not None:
         wrap_fp16_model(model)
-    checkpoint = load_checkpoint(model, args.checkpoint, map_location='cpu')
+    
+    # for other models
+    # checkpoint = load_checkpoint(model, args.checkpoint, map_location='cpu')
+
+    # for adabins only
+    model, _, _ = load_checkpoint_adabins(args.checkpoint, model)
 
     # clean gpu memory when starting a new evaluation.
     torch.cuda.empty_cache()

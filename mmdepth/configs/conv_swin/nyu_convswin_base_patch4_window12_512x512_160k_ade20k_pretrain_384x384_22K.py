@@ -1,6 +1,11 @@
+# _base_ = [
+#     '../_base_/models/convswin_base.py', '../_base_/datasets/nyu.py',
+#     '../_base_/default_runtime.py', '../_base_/schedules/schedule_cos20x.py'
+# ]
+
 _base_ = [
     '../_base_/models/convswin_base.py', '../_base_/datasets/nyu.py',
-    '../_base_/default_runtime.py', '../_base_/schedules/schedule_cos20x.py'
+    '../_base_/iter_runtime.py', '../_base_/schedules/schedule_cos24_iter.py'
 ]
 
 model = dict(

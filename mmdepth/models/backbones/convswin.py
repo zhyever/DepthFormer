@@ -773,12 +773,12 @@ class ConvSwinTransformer(BaseModule):
         self._conv_stem_conv1 = build_conv_layer(
             self.conv_cfg,
             in_channels,
-            64, # 64->96
+            64,
             kernel_size=7,
             stride=2,
             padding=3,
             bias=False)
-        self._conv_stem_norm1_name, _conv_stem_norm1 = build_norm_layer(self.conv_norm_cfg, 64, postfix=1) # 64->96
+        self._conv_stem_norm1_name, _conv_stem_norm1 = build_norm_layer(self.conv_norm_cfg, 64, postfix=1)
         self.add_module(self._conv_stem_norm1_name, _conv_stem_norm1)
         self._conv_stem_relu = nn.ReLU(inplace=True)
         self._conv_stem_maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
@@ -887,11 +887,14 @@ class ConvSwinTransformer(BaseModule):
                 outs.append(out)
 
         ###
-        # torch.Size([8, 96, 176, 352]) 
+        # torch.Size([8, 64, 176, 352]) 
         # torch.Size([8, 96, 88, 176])                                                                                          
         # torch.Size([8, 192, 44, 88])
         # torch.Size([8, 384, 22, 44])
         # torch.Size([8, 768, 11, 22])
         ###
+
+        # for i in outs:
+        #     print(i.shape)
 
         return outs

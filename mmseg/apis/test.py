@@ -32,6 +32,11 @@ def np2tmp(array, temp_file_name=None, tmpdir=None):
     return temp_file_name
 
 
+def remove_leading_slash(s):
+    if s[0] == '/' or s[0] == '\\':
+        return s[1:]
+    return s
+
 def single_gpu_test(model,
                     data_loader,
                     show=False,
@@ -90,13 +95,14 @@ def single_gpu_test(model,
     for batch_indices, data in zip(loader_indices, data_loader):
         with torch.no_grad():
             result = model(return_loss=False, **data)
-
+            
         if efficient_test:
             result = [np2tmp(_, tmpdir='.efficient_test') for _ in result]
 
         if format_only:
-            result = dataset.format_results(
+            result_depth = dataset.format_results(
                 result, indices=batch_indices, **format_args)
+                
         if pre_eval:
             # TODO: adapt samples_per_gpu > 1.
             # only samples_per_gpu=1 valid now
@@ -118,7 +124,7 @@ def single_gpu_test(model,
                 img_show = mmcv.imresize(img_show, (ori_w, ori_h))
 
                 if out_dir:
-                    out_file = osp.join(out_dir, img_meta['ori_filename'])
+                    out_file = osp.join(out_dir, remove_leading_slash(img_meta['ori_filename']))
 
                     # mkdir here
                     splits = out_file.split("/")
@@ -127,6 +133,7 @@ def single_gpu_test(model,
                         new_file_path += (i + "/")
                     new_file_path = new_file_path[:-1]
                     os.makedirs(new_file_path, exist_ok=True)
+
                 else:
                     out_file = None
 
