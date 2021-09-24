@@ -1,28 +1,30 @@
 _base_ = [
-    '../_base_/models/convswin_base.py', '../_base_/datasets/nyu.py',
+    '../_base_/models/convswin_base.py', '../_base_/datasets/kitti_benchmark_trainval.py',
     '../_base_/iter_runtime.py', '../_base_/schedules/schedule_cos24x_iter.py'
 ]
 
 model = dict(
-    pretrained='./nfs/checkpoints/swin_base_patch4_window7_224.pth', # noqa
+    pretrained='./nfs/checkpoints/swin_large_patch4_window12_384_22k.pth', # noqa
     backbone=dict(
-        embed_dims=128,
+        pretrain_img_size=384,
+        embed_dims=192,
         depths=[2, 2, 18, 2],
-        num_heads=[4, 8, 16, 32]),
+        num_heads=[6, 12, 24, 48],
+        window_size=12),
     neck=dict(
         type='DepthFusionMultiLevelNeck',
-        in_channels=[64, 128, 256, 512, 1024],
-        out_channels=[64, 128, 256, 512, 1024],
-        embedding_dim=384, # 384?
+        in_channels=[64, 192, 384, 768, 1536],
+        out_channels=[64, 192, 384, 768, 1536],
+        embedding_dim=512, # 384?
         scales=[1, 1, 1, 1, 1]),
     decode_head=dict(
         type='UpsampleHead',
-        in_channels=[1024, 512, 256, 128, 64],
+        in_channels=[1536, 768, 384, 192, 64],
         in_index=[0, 1, 2, 3],
-        up_sample_channels=[1024, 512, 256, 128, 64],
+        up_sample_channels=[1536, 768, 384, 192, 64],
         channels=64,
         min_depth=1e-3,
-        max_depth=10,
+        max_depth=80,
         att_fusion=False,
         loss_decode=dict(
             type='SigLoss', valid_mask=True, loss_weight=1.0, min_depth=1e-3, max_depth=80)
@@ -52,12 +54,14 @@ find_unused_parameters=True
 # search the best
 evaluation = dict(by_epoch=False, 
                   start=0,
-                  interval=1600, 
+                  interval=1000000,# no need to eval
                   pre_eval=True, 
                   rule='less', 
                   save_best='abs_rel_all',
                   greater_keys=("a1_all", "a2_all", "a3_all"), 
                   less_keys=("abs_rel_all", "rmse_all"))
+
+checkpoint_config = dict(by_epoch=False, interval=6900)
 
 # change 1/10 warmup_ratio to converge
 lr_config = dict(

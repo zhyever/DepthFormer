@@ -1,26 +1,30 @@
 _base_ = [
     '../_base_/models/convswin_base.py', '../_base_/datasets/kitti.py',
-    '../_base_/iter_runtime.py', '../_base_/schedules/schedule_cos24_iter.py'
+    '../_base_/default_runtime.py', '../_base_/schedules/schedule_cos20x.py'
 ]
 
 model = dict(
-    pretrained='./checkpoints/swin_base_patch4_window12_384_22k.pth', # noqa
+    pretrained='./nfs/checkpoints/swin_tiny_patch4_window7_224.pth', # noqa
     backbone=dict(
-        pretrain_img_size=384,
-        embed_dims=128,
-        depths=[2, 2, 18, 2],
-        num_heads=[4, 8, 16, 32],
-        window_size=12),
+        embed_dims=96,
+        depths=[2, 2, 6, 2],
+        num_heads=[3, 6, 12, 24],
+        window_size=7,
+        use_abs_pos_embed=False,
+        drop_path_rate=0.3,
+        patch_norm=True,
+        pretrain_style='official'),
     neck=dict(
-        type='DepthFusionMultiLevelNeck', # interact
-        in_channels=[64, 128, 256, 512, 1024],
-        out_channels=[64, 128, 256, 512, 1024],
-        scales=[1, 1, 1, 1, 1],
-        embedding_dim=64),
+        type='DepthMultiLevelNeck',
+        in_channels=[64, 96, 192, 384, 768],
+        out_channels=[64, 96, 192, 384, 768],
+        scales=[1, 1, 1, 1, 1]),
     decode_head=dict(
-        in_channels=[1024, 512, 256, 128, 64],
-        in_index=[0, 1, 2, 3, 4], # no use, align to mmseg.
-        up_sample_channels=[1024, 512, 256, 128, 64],
+        type='UpsampleHead',
+        in_channels=[768, 384, 192, 96, 64],
+        in_index=[0, 1, 2, 3],
+        up_sample_channels=[768, 384, 192, 96, 64],
+        channels=64,
         min_depth=1e-3,
         max_depth=80,
         att_fusion=False
@@ -29,6 +33,8 @@ model = dict(
 # AdamW optimizer, no weight decay for position embedding & layer norm
 # in backbone
 optimizer = dict(
+    type='AdamW',
+    lr=0.00006,
     betas=(0.9, 0.999),
     weight_decay=0.01,
     paramwise_cfg=dict(
@@ -40,10 +46,6 @@ optimizer = dict(
 
 
 # By default, models are trained on 8 GPUs with 2 images per GPU
-# data = dict(
-#     samples_per_gpu=8,
-#     workers_per_gpu=8,
-#     )
 data = dict(
     samples_per_gpu=2,
     workers_per_gpu=2,

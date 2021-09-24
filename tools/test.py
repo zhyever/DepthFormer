@@ -131,10 +131,10 @@ def main():
         wrap_fp16_model(model)
     
     # for other models
-    # checkpoint = load_checkpoint(model, args.checkpoint, map_location='cpu')
+    checkpoint = load_checkpoint(model, args.checkpoint, map_location='cpu')
 
     # for adabins only
-    model, _, _ = load_checkpoint_adabins(args.checkpoint, model)
+    # model, _, _ = load_checkpoint_adabins(args.checkpoint, model)
 
     # clean gpu memory when starting a new evaluation.
     torch.cuda.empty_cache()

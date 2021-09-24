@@ -163,7 +163,7 @@ class Adabins(BaseDepther):
     def __init__(self, 
                  n_bins=256, 
                  min_val=1e-3, 
-                 max_val=10, 
+                 max_val=80, 
                  norm='linear', 
                  init_cfg=None,
                  train_cfg=None,

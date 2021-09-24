@@ -1,10 +1,10 @@
 _base_ = [
-    '../_base_/models/convswin_unet3.py', '../_base_/datasets/kitti.py',
-    '../_base_/iter_runtime.py', '../_base_/schedules/schedule_cos24_iter.py'
+    '../_base_/models/swin_base.py', '../_base_/datasets/kitti.py',
+    '../_base_/default_runtime.py', '../_base_/schedules/schedule_cos20x.py'
 ]
 
 model = dict(
-    pretrained='./checkpoints/swin_tiny_patch4_window7_224.pth', # noqa
+    pretrained='./nfs/checkpoints/swin_tiny_patch4_window7_224.pth', # noqa
     backbone=dict(
         embed_dims=96,
         depths=[2, 2, 6, 2],
@@ -14,14 +14,25 @@ model = dict(
         drop_path_rate=0.3,
         patch_norm=True,
         pretrain_style='official'),
+    neck=dict(
+        type='DepthMultiLevelNeck',
+        in_channels=[96, 192, 384, 768],
+        out_channels=[96, 192, 384, 768],
+        scales=[1, 1, 1, 1]),
     decode_head=dict(
+        in_channels=[768, 384, 192, 96],
+        in_index=[0, 1, 2, 3],
+        up_sample_channels=[768, 384, 192, 96],
         min_depth=1e-3,
         max_depth=80,
+        att_fusion=False
     ))
 
 # AdamW optimizer, no weight decay for position embedding & layer norm
 # in backbone
 optimizer = dict(
+    type='AdamW',
+    lr=0.00006,
     betas=(0.9, 0.999),
     weight_decay=0.01,
     paramwise_cfg=dict(
@@ -31,12 +42,6 @@ optimizer = dict(
             'norm': dict(decay_mult=0.)
         }))
 
-
-# By default, models are trained on 8 GPUs with 2 images per GPU
-# data = dict(
-#     samples_per_gpu=8,
-#     workers_per_gpu=8,
-#     )
 data = dict(
     samples_per_gpu=2,
     workers_per_gpu=2,

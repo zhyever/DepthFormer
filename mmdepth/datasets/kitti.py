@@ -208,7 +208,8 @@ class KITTIDataset(Dataset):
 
     def format_results(self, results, imgfile_prefix=None, indices=None, **kwargs):
         """Place holder to format result to dataset specific output."""
-        results[0] = (results[0] * self.depth_scale).astype(np.uint16)
+        results[0] = (results[0] * self.depth_scale)
+        # .astype(np.uint16)
         return results
 
     def get_gt_depth_maps(self, efficient_test=None):

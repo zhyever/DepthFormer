@@ -39,22 +39,22 @@ def metrics(gt, pred):
     a1, a2, a3, abs_rel, rmse, log_10, rmse_log, silog, sq_rel = calculate(gt, pred)
 
     # TODO: hack here to eval different distance:
-    mask_1 = gt <= 26
+    mask_1 = gt <= 20
     mask_2 = gt > 0
     mask = np.logical_and(mask_1, mask_2)
     gt_l1 = gt[mask]
     pred_l1 = pred[mask]
     a1_l1, a2_l1, a3_l1, abs_rel_l1, rmse_l1, log_10_l1, rmse_log_l1, silog_l1, sq_rel_l1 = calculate(gt_l1, pred_l1)
 
-    mask_1 = gt <= 52
-    mask_2 = gt > 26
+    mask_1 = gt <= 60
+    mask_2 = gt > 20
     mask = np.logical_and(mask_1, mask_2)
     gt_l2 = gt[mask]
     pred_l2 = pred[mask]
     a1_l2, a2_l2, a3_l2, abs_rel_l2, rmse_l2, log_10_l2, rmse_log_l2, silog_l2, sq_rel_l2 = calculate(gt_l2, pred_l2)
 
     mask_1 = gt <= 80
-    mask_2 = gt > 52
+    mask_2 = gt > 60
     mask = np.logical_and(mask_1, mask_2)
     gt_l3 = gt[mask]
     pred_l3 = pred[mask]

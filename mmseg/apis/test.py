@@ -141,7 +141,8 @@ def single_gpu_test(model,
                     img_show,
                     result_depth,
                     show=show,
-                    out_file=out_file)
+                    out_file=out_file,
+                    format_only=format_only)
 
         batch_size = len(result)
         for _ in range(batch_size):
