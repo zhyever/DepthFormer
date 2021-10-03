@@ -194,14 +194,14 @@ class BaseDepther(BaseModule, metaclass=ABCMeta):
 
     # color the depth, kitti magma_r, nyu jet
     def colorize(self, value, cmap='magma_r'):
-        vmin=self.decode_head.min_depth
-        vmax=self.decode_head.max_depth
-
-        # hack for adabins
-        # vmin=1e-3
-        # vmax=80
-
-        value[value<=vmin]=vmin
+        # TODO: remove hacks
+        vmin=1e-3
+        vmax=8
+        # vmin=self.decode_head.min_depth
+        # vmax=self.decode_head.max_depth
+        # value[value<=vmin]=vmin
+        # vmin=None
+        # vmax=None
 
         # normalize
         vmin = value.min() if vmin is None else vmin
@@ -261,7 +261,7 @@ class BaseDepther(BaseModule, metaclass=ABCMeta):
         if format_only:
             if out_file is not None:
                 depth = depth
-                np.save(out_file, depth)
+                np.save(out_file, depth) # only save the value to ensemble
                 # mmcv.imwrite(depth.squeeze(), out_file)
         else:
             if out_file is not None:

@@ -11,7 +11,7 @@ from .builder import (DEPTHER, build_depther, DEPTHHEAD, build_depth_head, DEPTH
 # from mmdepth.models.decode_heads import *
 from mmdepth.models.depther import *
 from mmdepth.models.decode_heads import *
-from mmdepth.models.backbones import ConvSwinTransformer, DepthResNet
+from mmdepth.models.backbones import ConvSwinTransformer, DepthResNet, ConvVisionTransformer
 from mmdepth.models.losses import *
 from mmdepth.models.necks import *
 

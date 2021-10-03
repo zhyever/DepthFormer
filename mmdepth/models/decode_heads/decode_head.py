@@ -75,6 +75,7 @@ class DepthBaseDecodeHead(BaseModule, metaclass=ABCMeta):
         self.conv_depth = nn.Conv2d(channels, 1, kernel_size=3, padding=1, stride=1)
         self.fp16_enabled = False
         self.relu = nn.ReLU()
+        self.sigmoid = nn.Sigmoid()
 
     def extra_repr(self):
         """Extra repr."""
@@ -127,6 +128,7 @@ class DepthBaseDecodeHead(BaseModule, metaclass=ABCMeta):
     def depth_pred(self, feat):
         """Prediction each pixel."""
         output = self.relu(self.conv_depth(feat)) + self.min_depth
+        # output = self.sigmoid(self.conv_depth(feat)) * self.max_depth
         return output
 
     @force_fp32(apply_to=('depth_pred', ))

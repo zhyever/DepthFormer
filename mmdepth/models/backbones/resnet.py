@@ -492,6 +492,10 @@ class DepthResNet(BaseModule):
         x = self.conv1(x)
         x = self.norm1(x)
         x = self.relu(x)  # r50: 64x128x128
+
+        # # remove this hack!
+        # x = self.maxpool(x)
+        
         if 0 in self.out_indices:
             outs.append(x)
         x = self.maxpool(x)  # r50: 64x56x56

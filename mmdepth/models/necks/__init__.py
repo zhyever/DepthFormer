@@ -1,3 +1,4 @@
 from .multi_level_neck import DepthMultiLevelNeck
 from .skip_fusion_neck import DepthFusionMultiLevelNeck
 from .multi_level_aff_neck import DepthAffMultiLevelNeck
+from .skip_fusion_neck_self import DepthFusionMultiLevelNeckSA

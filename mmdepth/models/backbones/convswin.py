@@ -634,7 +634,8 @@ class ConvSwinTransformer(BaseModule):
                  depth=None,
                  num_stages=None,
                  with_cp=False,
-                 dilations=(1, 1, 1, 1),
+                 conv_strides=(1, 2, 2, 2),
+                 conv_dilations=(1, 1, 1, 1),
                  style='pytorch'): # for the conv stem
         super(ConvSwinTransformer, self).__init__()
 
@@ -746,8 +747,8 @@ class ConvSwinTransformer(BaseModule):
             self.stage_blocks = stage_blocks[:num_stages]
             self.res_layers = []
             for i, num_blocks in enumerate(self.stage_blocks):
-                stride = strides[i]
-                dilation = dilations[i]
+                stride = conv_strides[i]
+                dilation = conv_dilations[i]
                 planes = 64 * 2**i
                 res_layer = make_res_layer(
                     self.block,

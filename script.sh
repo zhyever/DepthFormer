@@ -1,6 +1,9 @@
 #! /bin/sh
 
+./tools/dist_train.sh mmdepth/configs/new_exps/ablations_convnum/wo_conv4.py 8 --work-dir nfs/ablation_convnum/wo_conv4
 
-./tools/dist_train.sh mmdepth/configs/new_exps/nyu_convswin_tiny_unet3.py 8 --work-dir nfs/lzy/nyu_convswin_tiny_unet3_1
-./tools/dist_train.sh mmdepth/configs/new_exps/nyu_convswin_tiny_unet3.py 8 --work-dir nfs/lzy/nyu_convswin_tiny_unet3_2
-./tools/dist_train.sh mmdepth/configs/new_exps/nyu_swin_tiny_baseline.py 8 --work-dir nfs/lzy/nyu_swin_tiny_baseline_1
+./tools/dist_train.sh mmdepth/configs/new_exps/ablations_convnum/wo_conv1.py 8 --work-dir nfs/ablation_convnum/wo_conv1
+
+./tools/dist_train.sh mmdepth/configs/new_exps/ablations_convnum/wo_conv2.py 8 --work-dir nfs/ablation_convnum/wo_conv2
+
+./tools/dist_train.sh mmdepth/configs/new_exps/ablations_convnum/wo_conv3.py 8 --work-dir nfs/ablation_convnum/wo_conv3

@@ -78,7 +78,7 @@ class PositionEmbeddingLearned(nn.Module):
         return pos
 
 @DEPTHNECK.register_module()
-class DepthFusionMultiLevelNeck(nn.Module):
+class DepthFusionMultiLevelNeckSA(nn.Module):
     """MultiLevelNeck.
 
     A neck structure connect vit backbone and decoder_heads. For DPT resemble blocks.
@@ -95,13 +95,14 @@ class DepthFusionMultiLevelNeck(nn.Module):
     def __init__(self,
                  in_channels,
                  out_channels,
+                 levels=4,
                  scales=[0.5, 1, 2, 4],
                  norm_cfg=None,
                  act_cfg=None,
                  embedding_dim=64,
                  cross_att=True,
                  self_att=True):
-        super(DepthFusionMultiLevelNeck, self).__init__()
+        super(DepthFusionMultiLevelNeckSA, self).__init__()
         assert isinstance(in_channels, list)
         self.cross_att = cross_att
         self.self_att = self_att
@@ -114,7 +115,7 @@ class DepthFusionMultiLevelNeck(nn.Module):
         self.embedding_dim = embedding_dim
 
         # TODO: hard code? remove maybe
-        for in_channel, out_channel in zip(in_channels[1:], out_channels[1:]):
+        for in_channel, out_channel in zip(in_channels, out_channels):
             self.lateral_convs.append(
                 ConvModule(
                     in_channel,
@@ -122,7 +123,7 @@ class DepthFusionMultiLevelNeck(nn.Module):
                     kernel_size=1,
                     norm_cfg=norm_cfg,
                     act_cfg=act_cfg))
-        for in_channel, out_channel in zip(out_channels[1:], out_channels[1:]):
+        for in_channel, out_channel in zip(out_channels, out_channels):
             self.convs.append(
                 ConvModule(
                     in_channel + self.embedding_dim,
@@ -135,7 +136,7 @@ class DepthFusionMultiLevelNeck(nn.Module):
 
         # for fusion layer. part of hard codes
         self.proj_conv = nn.ModuleList()
-        for in_channel, out_channel in zip(in_channels[1:], out_channels[1:]):
+        for in_channel, out_channel in zip(in_channels, out_channels):
             self.proj_conv.append(
                 nn.Sequential(
                     ConvModule(
@@ -148,37 +149,15 @@ class DepthFusionMultiLevelNeck(nn.Module):
                     nn.ReLU(inplace=True)    
                     ))
 
-        self.query_proj_conv = nn.Sequential(
-                                    ConvModule(
-                                        in_channels[0],
-                                        self.embedding_dim,
-                                        kernel_size=1,
-                                        norm_cfg=norm_cfg,
-                                        act_cfg=act_cfg),
-                                    nn.BatchNorm2d(self.embedding_dim),
-                                    nn.ReLU(inplace=True)    
-                                    )
         ########################################
 
-        num_feature_levels = 4
+        num_feature_levels = levels
         self.feat_pos_embed = PositionEmbeddingSine(self.embedding_dim//2)
         self.query_pos_embed = PositionEmbeddingSine(self.embedding_dim//2)
         self.reference_points = nn.Linear(self.embedding_dim, 2)
         self.level_embed = nn.Parameter(torch.Tensor(num_feature_levels, self.embedding_dim))
 
-        self.multi_att = MSDeformAttn(self.embedding_dim, n_levels=4, n_heads=8, n_points=8)
-        self.self_attn = MSDeformAttn(self.embedding_dim, n_levels=4, n_heads=8, n_points=8)
-
-        self.conv_fusion = nn.Sequential(
-                                    ConvModule(
-                                        self.embedding_dim + in_channels[0],
-                                        out_channels[0],
-                                        kernel_size=1,
-                                        norm_cfg=norm_cfg,
-                                        act_cfg=act_cfg),
-                                    nn.BatchNorm2d(out_channels[0]),
-                                    nn.ReLU(inplace=True)    
-                                    )
+        self.self_attn = MSDeformAttn(self.embedding_dim, n_levels=num_feature_levels, n_heads=8, n_points=8)
 
     def get_valid_ratio(self, mask):
         _, H, W = mask.shape
@@ -218,8 +197,7 @@ class DepthFusionMultiLevelNeck(nn.Module):
         assert len(inputs) == len(self.in_channels)
 
         # TODO: hard code? remove maybe
-        transformer_feature = inputs[1:]
-        _conv_skip = inputs[0]
+        transformer_feature = inputs
 
         # deal with transformer skip feats
         inputs = [
@@ -269,34 +247,6 @@ class DepthFusionMultiLevelNeck(nn.Module):
                                 None)
         else:
             src = src_flatten
-            
-        # deformable query and fusion
-        # conv_skip = self.query_proj_conv(conv_skip)
-        # bs, c, w, h = conv_skip.shape
-        # query_mask = torch.zeros_like(conv_skip[:, 0, :, :]).type(torch.bool)
-        # tgt = conv_skip.flatten(2).transpose(1, 2)
-        # query_embed = self.query_pos_embed(conv_skip, query_mask).flatten(2).transpose(1, 2)
-        # reference_points = self.reference_points(query_embed).sigmoid()
-        # tgt_with_embed = tgt
-        # reference_points_input = reference_points[:, :, None] * valid_ratios[:, None]
-
-        # deformable query and fusion
-        conv_skip = self.query_proj_conv(_conv_skip)
-        bs, c, w, h = conv_skip.shape
-        query_mask = torch.zeros_like(conv_skip[:, 0, :, :]).type(torch.bool)
-        tgt = conv_skip.flatten(2).transpose(1, 2)
-        query_embed = self.query_pos_embed(conv_skip, query_mask).flatten(2).transpose(1, 2)
-        reference_points = self.reference_points(query_embed).sigmoid()
-        reference_points_input = reference_points[:, :, None] * valid_ratios[:, None]
-        
-        if self.cross_att:
-            fusion_res = self.multi_att(self.with_pos_embed(tgt, query_embed), reference_points_input, src, spatial_shapes, level_start_index)
-        else:
-            fusion_res = tgt
-
-        fusion_res = fusion_res.permute(0, 2, 1)
-        fusion_res = fusion_res.reshape(bs, c, w, h)
-        fusion_res = self.conv_fusion(torch.cat([fusion_res, _conv_skip], dim=1))
 
         start = 0
         new_feats = []
@@ -318,6 +268,5 @@ class DepthFusionMultiLevelNeck(nn.Module):
                 x_resize = new_feats[i]
             x_resize = self.convs[i](x_resize)
             outs.append(x_resize)
-        outs.insert(0, fusion_res)
         
         return tuple(outs)

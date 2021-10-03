@@ -116,16 +116,8 @@ class UpSample(nn.Sequential):
 
 @DEPTHHEAD.register_module()
 class AdabinsHead(DepthBaseDecodeHead):
-    """Fully Convolution Networks for Semantic Segmentation.
-
-    This head is implemented of `FCNNet <https://arxiv.org/abs/1411.4038>`_.
-
-    Args:
-        num_convs (int): Number of convs in the head. Default: 2.
-        kernel_size (int): The kernel size for convs in the head. Default: 3.
-        concat_input (bool): Whether concat the input and output of convs
-            before classification layer.
-        dilation (int): The dilation rate for convs in the head. Default: 1.
+    """
+    Adabins Head
     """
 
     def __init__(self,

@@ -1,6 +1,6 @@
 _base_ = [
-    '../_base_/models/convswin_base.py', '../_base_/datasets/nyu.py',
-    '../_base_/iter_runtime.py', '../_base_/schedules/schedule_30k.py'
+    '../../_base_/models/convswin_base.py', '../../_base_/datasets/nyu.py',
+    '../../_base_/iter_runtime.py', '../../_base_/schedules/schedule_30k.py'
 ]
 
 model = dict(
@@ -13,16 +13,16 @@ model = dict(
         use_abs_pos_embed=False,
         drop_path_rate=0.3,
         patch_norm=True,
-        pretrain_style='official'),
+        pretrain_style='official',
+        num_stages=3), # for res50 residual block 1
     neck=dict(
         type='DepthFusionMultiLevelNeck',
-        in_channels=[64, 96, 192, 384, 768],
-        out_channels=[64, 96, 192, 384, 768],
+        in_channels=[1024, 96, 192, 384, 768],
+        out_channels=[128, 96, 192, 384, 768],
         embedding_dim=256,
         scales=[1, 1, 1, 1, 1]),
     decode_head=dict(
-        type='UpsampleHead',
-        in_channels=[768, 384, 192, 96, 64],
+        in_channels=[768, 384, 192, 96, 128],
         in_index=[0, 1, 2, 3],
         up_sample_channels=[768, 384, 192, 96, 64],
         channels=64,
@@ -45,8 +45,6 @@ optimizer = dict(
             'norm': dict(decay_mult=0.)
         }))
 
-
-# By default, models are trained on 8 GPUs with 2 images per GPU
 data = dict(
     samples_per_gpu=2,
     workers_per_gpu=2,
@@ -54,12 +52,7 @@ data = dict(
 
 find_unused_parameters=True
 
-# search the best
-evaluation = dict(by_epoch=False, 
-                  start=0,
-                  interval=3000, 
-                  pre_eval=True, 
-                  rule='less', 
-                  save_best='abs_rel_all',
-                  greater_keys=("a1_all", "a2_all", "a3_all"), 
-                  less_keys=("abs_rel_all", "rmse_all"))
+# yapf:disable
+log_config = dict(
+    interval=10,
+    )

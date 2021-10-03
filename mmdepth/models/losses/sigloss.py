@@ -16,22 +16,16 @@ class SigLoss(nn.Module):
 
     def __init__(self,
                  valid_mask=True,
-                 loss_weight=1.0,
-                 min_depth=1e-3,
-                 max_depth=80):
+                 loss_weight=1.0):
         super(SigLoss, self).__init__()
         self.valid_mask = valid_mask
         self.loss_weight = loss_weight
-        self.min_depth = min_depth
-        self.max_depth = max_depth
 
     def sigloss(self, input, target):
         if self.valid_mask:
             valid_mask = target > 0
             input = input[valid_mask]
             target = target[valid_mask]
-
-        target = torch.clamp(target, min=self.min_depth, max=self.max_depth)
 
         g = torch.log(input) - torch.log(target)
         Dg = torch.var(g) + 0.15 * torch.pow(torch.mean(g), 2)
@@ -42,7 +36,7 @@ class SigLoss(nn.Module):
                 depth_gt,
                 **kwargs):
         """Forward function."""
-
+        
         loss_depth = self.loss_weight * self.sigloss(
             depth_pred,
             depth_gt,

@@ -1,6 +1,6 @@
 _base_ = [
-    '../_base_/models/convswin_base.py', '../_base_/datasets/nyu.py',
-    '../_base_/iter_runtime.py', '../_base_/schedules/schedule_30k.py'
+    '../../_base_/models/convswin_base.py', '../../_base_/datasets/nyu.py',
+    '../../_base_/iter_runtime.py', '../../_base_/schedules/schedule_30k.py'
 ]
 
 model = dict(
@@ -19,7 +19,8 @@ model = dict(
         in_channels=[64, 96, 192, 384, 768],
         out_channels=[64, 96, 192, 384, 768],
         embedding_dim=256,
-        scales=[1, 1, 1, 1, 1]),
+        scales=[1, 1, 1, 1, 1],
+        cross_att=False),
     decode_head=dict(
         type='UpsampleHead',
         in_channels=[768, 384, 192, 96, 64],
@@ -57,7 +58,7 @@ find_unused_parameters=True
 # search the best
 evaluation = dict(by_epoch=False, 
                   start=0,
-                  interval=3000, 
+                  interval=400, 
                   pre_eval=True, 
                   rule='less', 
                   save_best='abs_rel_all',

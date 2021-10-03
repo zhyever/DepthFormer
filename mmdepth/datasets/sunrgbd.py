@@ -23,27 +23,26 @@ from PIL import Image
 
 import torch
 
+def remove_leading_slash(s):
+    if s[0] == '/' or s[0] == '\\':
+        return s[1:]
+    return s
 
 @DATASETS.register_module()
-class KITTIDataset(Dataset):
-    """KITTI dataset for semantic segmentation. An example of file structure
+class SUNRGBDDataset(Dataset):
+    """SUNRGBD dataset for semantic segmentation. An example of file structure
     is as followed.
     .. code-block:: none
-        ├── data
-        │   ├── KITTI
-        │   │   ├── kitti_eigen_train.txt
-        │   │   ├── kitti_eigen_test.txt
-        │   │   ├── input (RGB, img_dir)
-        │   │   │   ├── date_1
-        │   │   │   ├── date_2
-        │   │   │   |   ...
-        │   │   │   |   ...
-        |   │   ├── gt_depth (ann_dir)
-        │   │   │   ├── date_drive_number_sync
+        ├── root_path
+        │   ├── SUNRGBD
+        │   │   ├── kv1
+        │   │   ├── kv2
+        │   │   ├── ...
+        |   ├── RUNRGBD_val_splits.txt
+        │   │
     split file format:
-    input_image: 2011_09_26/2011_09_26_drive_0002_sync/image_02/data/0000000069.png 
-    gt_depth:    2011_09_26_drive_0002_sync/proj_depth/groundtruth/image_02/0000000069.png 
-    focal:       721.5377
+    input_image: SUNRGBD/kv2/kinect2data/000002_2014-05-26_14-23-37_260595134347_rgbf000103-resize/image/0000103.jpg 
+    gt_depth:    SUNRGBD/kv2/kinect2data/000002_2014-05-26_14-23-37_260595134347_rgbf000103-resize/image/0000103.png 
     Args:
         pipeline (list[dict]): Processing pipeline
         img_dir (str): Path to image directory
@@ -61,60 +60,44 @@ class KITTIDataset(Dataset):
 
     def __init__(self,
                  pipeline,
-                 img_dir,
-                 img_suffix='.png',
-                 ann_dir=None,
-                 seg_map_suffix='.png',
+                 img_suffix='.jpg',
+                 depth_map_suffix='.png',
                  split=None,
                  data_root=None,
                  test_mode=False,
-                 depth_scale=256,
-                 garg_crop=True,
-                 eigen_crop=False,
+                 depth_scale=1000,
                  min_depth=1e-3,
-                 max_depth=80):
+                 max_depth=10):
         self.pipeline = Compose(pipeline)
-        self.img_dir = img_dir
         self.img_suffix = img_suffix
-        self.ann_dir = ann_dir
-        self.seg_map_suffix = seg_map_suffix
+        self.depth_map_suffix = depth_map_suffix
         self.split = split
         self.data_root = data_root
         self.test_mode = test_mode
         self.depth_scale = depth_scale
-        self.garg_crop = garg_crop
-        self.eigen_crop = eigen_crop
         self.min_depth = min_depth
         self.max_depth = max_depth
 
         # join paths if data_root is specified
         if self.data_root is not None:
-            if not osp.isabs(self.img_dir):
-                self.img_dir = osp.join(self.data_root, self.img_dir)
-            if not (self.ann_dir is None or osp.isabs(self.ann_dir)):
-                self.ann_dir = osp.join(self.data_root, self.ann_dir)
             if not (self.split is None or osp.isabs(self.split)):
                 self.split = osp.join(self.data_root, self.split)
 
         # load annotations
-        self.img_infos = self.load_annotations(self.img_dir, self.img_suffix,
-                                            #    self.ann_dir if test_mode!=True else None,
-                                               self.ann_dir,
-                                               self.seg_map_suffix, self.split)
+        self.img_infos = self.load_annotations(self.data_root, self.img_suffix,
+                                               self.depth_map_suffix, self.split)
         
 
     def __len__(self):
         """Total number of samples of data."""
         return len(self.img_infos)
 
-    def load_annotations(self, img_dir, img_suffix, ann_dir, seg_map_suffix,
-                         split):
+    def load_annotations(self, data_root, img_suffix, depth_map_suffix, split):
         """Load annotation from directory.
         Args:
-            img_dir (str): Path to image directory
+            img_dir (str): Path to data directory
             img_suffix (str): Suffix of images.
-            ann_dir (str|None): Path to annotation directory.
-            seg_map_suffix (str|None): Suffix of segmentation maps.
+            depth_map_suffix (str|None): Suffix of depth maps.
             split (str|None): Split txt file. If split is specified, only file
                 with suffix in the splits will be loaded. Otherwise, all images
                 in img_dir/ann_dir will be loaded. Default: None
@@ -128,14 +111,13 @@ class KITTIDataset(Dataset):
             with open(split) as f:
                 for line in f:
                     img_info = dict()
-                    if ann_dir is not None:
-                        depth_map = line.strip().split(" ")[1]
-                        if depth_map == 'None':
-                            self.invalid_depth_num += 1
-                            continue
-                        img_info['ann'] = dict(depth_map=depth_map)
+                    depth_map = line.strip().split(" ")[1]
+                    if depth_map == 'None':
+                        self.invalid_depth_num += 1
+                        continue
+                    img_info['ann'] = dict(depth_map=osp.join(data_root, remove_leading_slash(depth_map)))
                     img_name = line.strip().split(" ")[0]
-                    img_info['filename'] = img_name
+                    img_info['filename'] = osp.join(data_root, remove_leading_slash(img_name))
                     img_infos.append(img_info)
         else:
             print("Split is None, ERROR")
@@ -159,8 +141,6 @@ class KITTIDataset(Dataset):
     def pre_pipeline(self, results):
         """Prepare results dict for pipeline."""
         results['depth_fields'] = []
-        results['img_prefix'] = self.img_dir
-        results['depth_prefix'] = self.ann_dir
         results['depth_scale'] = self.depth_scale
 
     def __getitem__(self, idx):
@@ -221,35 +201,27 @@ class KITTIDataset(Dataset):
                 'friendly by default. ')
 
         for img_info in self.img_infos:
-            depth_map = osp.join(self.ann_dir, img_info['ann']['depth_map'])
+            depth_map = img_info['ann']['depth_map']
             depth_map_gt = np.asarray(Image.open(depth_map), dtype=np.float32) / self.depth_scale
             yield depth_map_gt
-    
-    # get kb cropped gt, shape 1, H, W
-    def eval_kb_crop(self, depth_gt):
-        height = depth_gt.shape[0]
-        width = depth_gt.shape[1]
-        top_margin = int(height - 352)
-        left_margin = int((width - 1216) / 2)
-        depth_cropped = depth_gt[top_margin: top_margin + 352, left_margin: left_margin + 1216]
-        depth_cropped = np.expand_dims(depth_cropped, axis=0)
-        return depth_cropped
 
     def eval_mask(self, depth_gt):
         depth_gt = np.squeeze(depth_gt)
         valid_mask = np.logical_and(depth_gt > self.min_depth, depth_gt < self.max_depth)
-        if self.garg_crop or self.eigen_crop:
-            gt_height, gt_width = depth_gt.shape
-            eval_mask = np.zeros(valid_mask.shape)
+        
+        ##########
+        gt_height, gt_width = depth_gt.shape
+        eval_mask = np.zeros(valid_mask.shape)
 
-            if self.garg_crop:
-                eval_mask[int(0.40810811 * gt_height):int(0.99189189 * gt_height),
-                          int(0.03594771 * gt_width):int(0.96405229 * gt_width)] = 1
 
-            elif self.eigen_crop:
-                eval_mask[int(0.3324324 * gt_height):int(0.91351351 * gt_height),
-                          int(0.0359477 * gt_width):int(0.96405229 * gt_width)] = 1
+        # eval_mask[int(0.40810811 * gt_height):int(0.99189189 * gt_height),
+        #             int(0.03594771 * gt_width):int(0.96405229 * gt_width)] = 1
+
+        eval_mask[45:471, 41:601] = 1
+
         valid_mask = np.logical_and(valid_mask, eval_mask)
+        ###########
+
         valid_mask = np.expand_dims(valid_mask, axis=0)
         return valid_mask
 
@@ -274,11 +246,20 @@ class KITTIDataset(Dataset):
         pre_eval_preds = []
 
         for i, (pred, index) in enumerate(zip(preds, indices)):
-            depth_map = osp.join(self.ann_dir,
-                               self.img_infos[index]['ann']['depth_map'])
+            depth_map = self.img_infos[index]['ann']['depth_map']
 
-            depth_map_gt = np.asarray(Image.open(depth_map), dtype=np.float32) / self.depth_scale
-            depth_map_gt = self.eval_kb_crop(depth_map_gt)
+            # self.depth_scale
+            depthVisData = np.asarray(Image.open(depth_map, 'r'), np.uint16)
+            depthInpaint = np.bitwise_or(np.right_shift(depthVisData, 3), np.left_shift(depthVisData, 16 - 3))
+            depthInpaint = depthInpaint.astype(np.single) / 1000
+            depthInpaint[depthInpaint > 8] = 8
+            pred[pred > 8] = 8
+            depthInpaint = depthInpaint.astype(np.float32)
+            depth_map_gt = depthInpaint
+
+            # depth_map_gt = np.asarray(Image.open(depth_map), dtype=np.float32) / self.depth_scale
+            depth_map_gt = np.expand_dims(depth_map_gt, axis=0)
+
             valid_mask = self.eval_mask(depth_map_gt)
             
             eval = metrics(depth_map_gt[valid_mask], pred[valid_mask])
@@ -287,6 +268,9 @@ class KITTIDataset(Dataset):
             # save prediction results
             pre_eval_preds.append(pred)
 
+        # depthInpaint = np.expand_dims(depthInpaint, axis=0)
+        # depthInpaint = np.expand_dims(depthInpaint, axis=0)
+        # return pre_eval_results, depthInpaint
         return pre_eval_results, pre_eval_preds
 
     def evaluate(self, results, metric='eigen', logger=None, **kwargs):
