@@ -43,28 +43,26 @@ class KITTIDataset(Dataset):
     split file format:
     input_image: 2011_09_26/2011_09_26_drive_0002_sync/image_02/data/0000000069.png 
     gt_depth:    2011_09_26_drive_0002_sync/proj_depth/groundtruth/image_02/0000000069.png 
-    focal:       721.5377
+    focal:       721.5377 (following the focal setting in BTS, but actually we do not use it)
     Args:
         pipeline (list[dict]): Processing pipeline
         img_dir (str): Path to image directory
-        img_suffix (str): Suffix of images. Default: '.jpg'
         ann_dir (str, optional): Path to annotation directory. Default: None
-        seg_map_suffix (str): Suffix of segmentation maps. Default: '.png'
-        split (str, optional): Split txt file. If split is specified, only
-            file with suffix in the splits will be loaded. Otherwise, all
-            images in img_dir/ann_dir will be loaded. Default: None
-        data_root (str, optional): Data root for img_dir/ann_dir. Default:
-            None.
+        split (str, optional): Split txt file. Split should be specified, only file in the splits will be loaded.
+        data_root (str, optional): Data root for img_dir/ann_dir. Default: None.
         test_mode (bool): If test_mode=True, gt wouldn't be loaded.
+        depth_scale=256: Default KITTI pre-process. divide 256 to get gt measured in meters (m)
+        garg_crop=True: Following Adabins, use grag crop to eval results.
+        eigen_crop=False: Another cropping setting.
+        min_depth=1e-3: Default min depth value.
+        max_depth=80: Default max depth value.
     """
 
 
     def __init__(self,
                  pipeline,
                  img_dir,
-                 img_suffix='.png',
                  ann_dir=None,
-                 seg_map_suffix='.png',
                  split=None,
                  data_root=None,
                  test_mode=False,
@@ -73,11 +71,10 @@ class KITTIDataset(Dataset):
                  eigen_crop=False,
                  min_depth=1e-3,
                  max_depth=80):
+
         self.pipeline = Compose(pipeline)
         self.img_dir = img_dir
-        self.img_suffix = img_suffix
         self.ann_dir = ann_dir
-        self.seg_map_suffix = seg_map_suffix
         self.split = split
         self.data_root = data_root
         self.test_mode = test_mode
@@ -89,7 +86,7 @@ class KITTIDataset(Dataset):
 
         # join paths if data_root is specified
         if self.data_root is not None:
-            if not osp.isabs(self.img_dir):
+            if not (self.img_dir is None or osp.isabs(self.img_dir)):
                 self.img_dir = osp.join(self.data_root, self.img_dir)
             if not (self.ann_dir is None or osp.isabs(self.ann_dir)):
                 self.ann_dir = osp.join(self.data_root, self.ann_dir)
@@ -97,27 +94,19 @@ class KITTIDataset(Dataset):
                 self.split = osp.join(self.data_root, self.split)
 
         # load annotations
-        self.img_infos = self.load_annotations(self.img_dir, self.img_suffix,
-                                            #    self.ann_dir if test_mode!=True else None,
-                                               self.ann_dir,
-                                               self.seg_map_suffix, self.split)
+        self.img_infos = self.load_annotations(self.img_dir, self.ann_dir, self.split)
         
 
     def __len__(self):
         """Total number of samples of data."""
         return len(self.img_infos)
 
-    def load_annotations(self, img_dir, img_suffix, ann_dir, seg_map_suffix,
-                         split):
+    def load_annotations(self, img_dir, ann_dir, split):
         """Load annotation from directory.
         Args:
             img_dir (str): Path to image directory
-            img_suffix (str): Suffix of images.
             ann_dir (str|None): Path to annotation directory.
-            seg_map_suffix (str|None): Suffix of segmentation maps.
-            split (str|None): Split txt file. If split is specified, only file
-                with suffix in the splits will be loaded. Otherwise, all images
-                in img_dir/ann_dir will be loaded. Default: None
+            split (str|None): Split txt file. Split should be specified, only file in the splits will be loaded.
         Returns:
             list[dict]: All image info of dataset.
         """
@@ -128,7 +117,7 @@ class KITTIDataset(Dataset):
             with open(split) as f:
                 for line in f:
                     img_info = dict()
-                    if ann_dir is not None:
+                    if ann_dir is not None: # save for unsupervised
                         depth_map = line.strip().split(" ")[1]
                         if depth_map == 'None':
                             self.invalid_depth_num += 1
@@ -138,12 +127,13 @@ class KITTIDataset(Dataset):
                     img_info['filename'] = img_name
                     img_infos.append(img_info)
         else:
-            print("Split is None, ERROR")
+            print("Split should be specified, NotImplementedError")
             raise NotImplementedError 
 
         # github issue:: make sure the same order
         img_infos = sorted(img_infos, key=lambda x: x['filename'])
         print_log(f'Loaded {len(img_infos)} images. Totally {self.invalid_depth_num} invalid pairs are filtered', logger=get_root_logger())
+
         return img_infos
 
     def get_ann_info(self, idx):
@@ -206,9 +196,9 @@ class KITTIDataset(Dataset):
         self.pre_pipeline(results)
         return self.pipeline(results)
 
-    def format_results(self, results, imgfile_prefix=None, indices=None, **kwargs):
+    def format_results(self, results):
         """Place holder to format result to dataset specific output."""
-        results[0] = (results[0] * self.depth_scale)
+        results[0] = (results[0] * self.depth_scale) # Do not convert to np.uint16 for ensembling.
         # .astype(np.uint16)
         return results
 
@@ -225,8 +215,8 @@ class KITTIDataset(Dataset):
             depth_map_gt = np.asarray(Image.open(depth_map), dtype=np.float32) / self.depth_scale
             yield depth_map_gt
     
-    # get kb cropped gt, shape 1, H, W
     def eval_kb_crop(self, depth_gt):
+        """Following Adabins, Do kb crop for testing"""
         height = depth_gt.shape[0]
         width = depth_gt.shape[1]
         top_margin = int(height - 352)
@@ -236,6 +226,7 @@ class KITTIDataset(Dataset):
         return depth_cropped
 
     def eval_mask(self, depth_gt):
+        """Following Adabins, Do grag_crop or eigen_crop for testing"""
         depth_gt = np.squeeze(depth_gt)
         valid_mask = np.logical_and(depth_gt > self.min_depth, depth_gt < self.max_depth)
         if self.garg_crop or self.eigen_crop:
@@ -301,6 +292,7 @@ class KITTIDataset(Dataset):
             dict[str, float]: Default metrics.
         """
         metric = ["a1", "a2", "a3", "abs_rel", "rmse", "log_10", "rmse_log", "silog", "sq_rel"]
+        
         eval_results = {}
         # test a list of files
         if mmcv.is_list_of(results, np.ndarray) or mmcv.is_list_of(
