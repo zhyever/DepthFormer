@@ -4,13 +4,12 @@ _base_ = [
 ]
 
 model = dict(
-    pretrained='./nfs/checkpoints/swin_large_patch4_window12_384_22k.pth', # noqa
+    pretrained='./nfs/checkpoints/swin_large_patch4_window7_224_22k.pth', # noqa
     backbone=dict(
-        pretrain_img_size=384,
         embed_dims=192,
         depths=[2, 2, 18, 2],
         num_heads=[6, 12, 24, 48],
-        window_size=12),
+        window_size=7),
     neck=dict(
         type='DepthFusionMultiLevelNeck',
         in_channels=[64, 192, 384, 768, 1536],

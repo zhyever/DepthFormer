@@ -1,15 +1,17 @@
 import os
 
 if __name__ == '__main__':
-    path = "/home/zhyever/data_a/dataset/KITTI_raw"
+    path = "data/kitti"
     train_split = "benchmark_train_files.txt"
     val_split = "benchmark_val_files.txt"
+    eigen_split = "eigen_benchmark_test_raw.txt"
 
     train_split_out = "benchmark_train.txt"
     val_split_out = "benchmark_val.txt"
     val_split_out = "benchmark_val_subset.txt"
+    eigen_out = "eigen_benchmark_test.txt"
 
-    with open(os.path.join(path, train_split)) as f:
+    with open(os.path.join(path, eigen_split)) as f:
         text_lines = f.readlines()
     
     for id, line in enumerate(text_lines):
@@ -29,7 +31,7 @@ if __name__ == '__main__':
         line_out = image + " " + depth
 
         # if id % 12 == 1:
-        with open(os.path.join(path, train_split_out), "a+") as f:
+        with open(os.path.join(path, eigen_out), "a+") as f:
             f.write(line_out + "\n")
             f.close()
 

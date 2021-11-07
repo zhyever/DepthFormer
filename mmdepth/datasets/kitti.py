@@ -117,7 +117,7 @@ class KITTIDataset(Dataset):
             with open(split) as f:
                 for line in f:
                     img_info = dict()
-                    if ann_dir is not None: # save for unsupervised
+                    if ann_dir is not None: # benchmark test or unsupervised future
                         depth_map = line.strip().split(" ")[1]
                         if depth_map == 'None':
                             self.invalid_depth_num += 1
@@ -196,7 +196,7 @@ class KITTIDataset(Dataset):
         self.pre_pipeline(results)
         return self.pipeline(results)
 
-    def format_results(self, results):
+    def format_results(self, results, imgfile_prefix=None, indices=None, **kwargs):
         """Place holder to format result to dataset specific output."""
         results[0] = (results[0] * self.depth_scale) # Do not convert to np.uint16 for ensembling.
         # .astype(np.uint16)

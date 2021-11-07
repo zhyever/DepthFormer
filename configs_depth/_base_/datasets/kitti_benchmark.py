@@ -12,6 +12,7 @@ train_pipeline = [
     dict(type='DepthRandomRotate', prob=0.5, degree=2.5),
     dict(type='DepthRandomFlip', prob=0.5),
     dict(type='DepthRandomCrop', crop_size=(352, 704)),
+    # dict(type='PhotoMetricDistortion'),
     dict(type='DepthColorAug', prob=1, gamma_range=[0.9, 1.1], brightness_range=[0.9, 1.1], color_range=[0.9, 1.1]),
     dict(type='Normalize', **img_norm_cfg),
     dict(type='DepthDefaultFormatBundle'),
@@ -53,22 +54,35 @@ data = dict(
         img_dir='input',
         ann_dir='gt_depth',
         depth_scale=256,
-        split='benchmark_val_subset.txt',
+        split='benchmark_val.txt',
         pipeline=test_pipeline,
         garg_crop=True,
         eigen_crop=False,
         min_depth=1e-3,
         max_depth=80),
+    # test=dict(
+    #     type=dataset_type,
+    #     data_root=data_root,
+    #     img_dir='input',
+    #     ann_dir='gt_depth',
+    #     depth_scale=256,
+    #     split='benchmark_val.txt',
+    #     pipeline=test_pipeline,
+    #     garg_crop=True,
+    #     eigen_crop=False,
+    #     min_depth=1e-3,
+    #     max_depth=80)
     test=dict(
         type=dataset_type,
         data_root=data_root,
-        img_dir='input',
-        ann_dir='gt_depth',
+        img_dir='test_depth_prediction_anonymous',
+        # ann_dir='gt_depth',
         depth_scale=256,
         split='benchmark_test_split.txt',
         pipeline=test_pipeline,
         garg_crop=True,
         eigen_crop=False,
         min_depth=1e-3,
-        max_depth=80))
+        max_depth=80)
+)
 
