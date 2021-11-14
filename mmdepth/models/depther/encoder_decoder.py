@@ -10,6 +10,9 @@ from mmseg.models import builder
 from mmseg.models.builder import DEPTHER
 from .base import BaseDepther
 
+# for model size
+import numpy as np
+
 @DEPTHER.register_module()
 class DepthEncoderDecoder(BaseDepther):
     """Encoder Decoder segmentors.
@@ -32,8 +35,19 @@ class DepthEncoderDecoder(BaseDepther):
             backbone.pretrained = pretrained
         self.backbone = builder.build_depth_backbone(backbone)
         self._init_decode_head(decode_head)
+        
+        num_params = sum([np.prod(p.size()) for p in self.backbone.parameters()])
+        print("Total number of backbone parameters: {}".format(num_params))
+        num_params = sum([np.prod(p.size()) for p in self.decode_head.parameters()])
+        print("Total number of decoder_head parameters: {}".format(num_params))
+
         if neck is not None:
             self.neck = builder.build_depth_neck(neck)
+            num_params = sum([np.prod(p.size()) for p in self.neck.parameters()])
+            print("Total number of neck parameters: {}".format(num_params))
+        
+        
+        
 
         self.train_cfg = train_cfg
         self.test_cfg = test_cfg

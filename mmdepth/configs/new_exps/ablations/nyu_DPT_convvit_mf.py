@@ -19,7 +19,7 @@ model = dict(
         min_depth=1e-3,
         max_depth=10,
         loss_decode=dict(
-            type='SigLoss', valid_mask=True, loss_weight=1.0, min_depth=1e-3, max_depth=10))
+            type='SigLoss', valid_mask=True, loss_weight=1.0))
     )
 
 # AdamW optimizer, no weight decay for position embedding & layer norm

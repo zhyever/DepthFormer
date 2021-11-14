@@ -119,3 +119,6 @@ mmseg/.mim
 
 # log and checkpoint
 nfs
+
+# project
+project

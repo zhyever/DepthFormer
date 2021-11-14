@@ -1,6 +1,6 @@
 _base_ = [
-    '../_base_/models/swin_base.py', '../_base_/datasets/nyu.py',
-    '../_base_/iter_runtime.py', '../_base_/schedules/schedule_cos24x_iter.py'
+    '../../_base_/models/swin_base.py', '../../_base_/datasets/nyu.py',
+    '../../_base_/iter_runtime.py', '../../_base_/schedules/schedule_cos24x_iter.py'
 ]
 
 model = dict(

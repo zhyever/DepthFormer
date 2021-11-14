@@ -10,6 +10,9 @@ from mmcv.engine import collect_results_cpu, collect_results_gpu
 from mmcv.image import tensor2imgs
 from mmcv.runner import get_dist_info
 
+# for time
+import time
+
 import os
 
 def np2tmp(array, temp_file_name=None, tmpdir=None):
@@ -92,9 +95,14 @@ def single_gpu_test(model,
     # we use batch_sampler to get correct data idx
     loader_indices = data_loader.batch_sampler
 
+    time_steps = []
     for batch_indices, data in zip(loader_indices, data_loader):
         with torch.no_grad():
+            begin = time.time()
             result = model(return_loss=False, **data)
+            end = time.time()
+            interval = end - begin
+            time_steps.append(interval)
             
         if efficient_test:
             result = [np2tmp(_, tmpdir='.efficient_test') for _ in result]
@@ -148,6 +156,8 @@ def single_gpu_test(model,
         for _ in range(batch_size):
             prog_bar.update()
 
+    time_avg = sum(time_steps)/len(time_steps)
+    print("Time per image: {}".format(time_avg))
     return results
 
 

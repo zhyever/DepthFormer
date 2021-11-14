@@ -193,7 +193,7 @@ class BaseDepther(BaseModule, metaclass=ABCMeta):
         return loss, log_vars
 
     # color the depth, kitti magma_r, nyu jet
-    def colorize(self, value, cmap='magma_r'):
+    def colorize(self, value, cmap='jet'):
         # TODO: remove hacks
         vmin=1e-3
         vmax=8

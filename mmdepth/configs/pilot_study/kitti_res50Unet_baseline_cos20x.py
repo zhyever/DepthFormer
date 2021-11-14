@@ -9,7 +9,7 @@ model = dict(
         min_depth=1e-3,
         max_depth=80,
         loss_decode=dict(
-            type='SigLoss', valid_mask=True, loss_weight=1.0, min_depth=1e-3, max_depth=80)),
+            type='SigLoss', valid_mask=True, loss_weight=1.0)),
     )
 
 find_unused_parameters=True

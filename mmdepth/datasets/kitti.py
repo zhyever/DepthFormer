@@ -83,6 +83,8 @@ class KITTIDataset(Dataset):
         self.eigen_crop = eigen_crop
         self.min_depth = min_depth
         self.max_depth = max_depth
+        self.interval1 = 20
+        self.interval2 = 60
 
         # join paths if data_root is specified
         if self.data_root is not None:
@@ -198,8 +200,7 @@ class KITTIDataset(Dataset):
 
     def format_results(self, results, imgfile_prefix=None, indices=None, **kwargs):
         """Place holder to format result to dataset specific output."""
-        results[0] = (results[0] * self.depth_scale) # Do not convert to np.uint16 for ensembling.
-        # .astype(np.uint16)
+        results[0] = (results[0] * self.depth_scale) # Do not convert to np.uint16 for ensembling. # .astype(np.uint16)
         return results
 
     def get_gt_depth_maps(self, efficient_test=None):
@@ -272,7 +273,12 @@ class KITTIDataset(Dataset):
             depth_map_gt = self.eval_kb_crop(depth_map_gt)
             valid_mask = self.eval_mask(depth_map_gt)
             
-            eval = metrics(depth_map_gt[valid_mask], pred[valid_mask])
+            eval = metrics(depth_map_gt[valid_mask], 
+                           pred[valid_mask], 
+                           interval1=self.interval1, 
+                           interval2=self.interval2, 
+                           max_depth=self.max_depth)
+
             pre_eval_results.append(eval)
 
             # save prediction results

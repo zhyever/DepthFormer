@@ -17,6 +17,8 @@ from mmseg.models import build_segmentor, build_depther
 
 from tools.adabins_load import load_checkpoint_adabins
 
+import numpy as np
+
 def parse_args():
     parser = argparse.ArgumentParser(
         description='mmseg test (and eval) a model')
@@ -132,6 +134,10 @@ def main():
     
     # for other models
     checkpoint = load_checkpoint(model, args.checkpoint, map_location='cpu')
+
+    # check pramas
+    # num_params = sum([np.prod(p.size()) for p in model.parameters()])
+    # print("Total number of model parameters: {}".format(num_params))
 
     # for adabins only
     # model, _, _ = load_checkpoint_adabins(args.checkpoint, model)
