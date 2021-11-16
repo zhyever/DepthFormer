@@ -350,7 +350,7 @@ class SUNRGBDDataset(Dataset):
 #                  seg_map_suffix='.png',
 #                 #  split='kitti_eigen_train.txt',
 #                  split='kitti_eigen_test.txt',
-#                  data_root="/mnt/10-5-108-187/lizhenyu1/data_depth_annotated/",
+#                  data_root="/mnt/10-5-108-187/xxx/data_depth_annotated/",
 #                  test_mode=True,
 #                  depth_scale=256
 #                  )
@@ -369,8 +369,8 @@ class SUNRGBDDataset(Dataset):
 
     # import os
 
-    # files = os.listdir("/mnt/10-5-108-187/lizhenyu1/data_depth_annotated/test_images")
-    # with open("/mnt/10-5-108-187/lizhenyu1/data_depth_annotated/benchmark_test_split.txt", "w+") as f:
+    # files = os.listdir("/mnt/10-5-108-187/xxx/data_depth_annotated/test_images")
+    # with open("/mnt/10-5-108-187/xxx/data_depth_annotated/benchmark_test_split.txt", "w+") as f:
     #     for i in files:
     #         split_str = i
     #         f.write(split_str + "\n")

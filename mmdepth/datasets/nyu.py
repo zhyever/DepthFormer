@@ -339,7 +339,7 @@ class NYUDataset(Dataset):
 #     data = NYUDataset(
 #                  pipeline,
 #                  split='nyu_train.txt',
-#                  data_root="/mnt/10-5-108-187/lizhenyu1/nyu/",
+#                  data_root="/mnt/10-5-108-187/xxx/nyu/",
 #                  test_mode=False,
 #                  depth_scale=256
 #                  )

@@ -1,7 +1,6 @@
 # dataset settings
 dataset_type = 'SUNRGBDDataset'
-data_root = '/mnt/10-5-108-187/lizhenyu1/SUNRGBD/'
-# data_root = '/nfs/lizhenyu1/data_depth_annotated/'
+data_root = 'data/SUNRGBD/'
 img_norm_cfg = dict(
     mean=[123.675, 116.28, 103.53], std=[58.395, 57.12, 57.375], to_rgb=True)
 test_pipeline = [
