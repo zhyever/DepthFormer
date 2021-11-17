@@ -4,6 +4,8 @@
 
 This is the official implementation of **DepthFormer: Exploiting Long-Range Correlation and Local Information for Accurate Monocular Depth Estimation**.
 
+You can download our quantitative results from [KITTI](https://drive.google.com/file/d/1N1H12Wj4HrDT0b4TCGwNzsQ8BsK6mtOD/view?usp=sharing) and [NYU](https://drive.google.com/file/d/1N1H12Wj4HrDT0b4TCGwNzsQ8BsK6mtOD/view?usp=sharing)
+
 DepthFormer Motivation:
 ![demo image](resources/teaser_v2.png)
 Hierarchical Aggregation and Heterogeneous Interaction (HAHI) Module:
@@ -73,7 +75,7 @@ NYU Evaluation
 bash ./tools/dist_test.sh configs_depth/depthformer/depthformer_large_p4_w12_22k_nyu.py nfs/checkpoints/depthformer_swinL_nyu.pth num_gpus --eval eigen
 ```
 
-Or you can train the models by yourself:
+Or you can train the models by yourself (We will release this part of code later after the reviewing processing.):
 ```shell
 KITTI Training
 bash ./tools/dist_train.sh configs_depth/depthformer/depthformer_large_p4_w12_22k_kitti.py nfs/checkpoints/depthformer_swinL_kitti.pth num_gpus --work-dir xxx
