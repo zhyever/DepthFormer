@@ -13,6 +13,7 @@ from torch.nn.modules.activation import MultiheadAttention
 from mmdepth.models.necks.ops.modules import MSDeformAttn
 
 from mmcv.cnn import build_norm_layer
+import torch.nn.functional as F
 
 # position embedding for fusion layer
 class PositionEmbeddingSine(nn.Module):
@@ -233,6 +234,7 @@ class DepthFusionMultiLevelNeck(nn.Module):
         mask_flatten = []
         spatial_shapes = []
         lvl_pos_embed_flatten = []
+        tran_feats_unfolded = []
         for i in range(len(transformer_feature)):
             bs, c, h, w = inputs[i].shape
             spatial_shape = (h, w)
@@ -246,6 +248,7 @@ class DepthFusionMultiLevelNeck(nn.Module):
             lvl_pos_embed = pos_embed + self.level_embed[i].view(1, 1, -1)
 
             feat = self.proj_conv[i](inputs[i])
+            tran_feats_unfolded.append(feat)
             flatten_feat = feat.flatten(2).transpose(1, 2)
 
             lvl_pos_embed_flatten.append(lvl_pos_embed)
@@ -282,6 +285,19 @@ class DepthFusionMultiLevelNeck(nn.Module):
 
         # deformable query and fusion
         conv_skip = self.query_proj_conv(_conv_skip)
+        conv_shape = conv_skip.shape
+        trans_feat = tran_feats_unfolded[0]
+        trans_shape = trans_feat.shape
+        theta  = torch.tensor([
+            [1,0,0],
+            [0,1,0]
+        ], dtype=torch.float, device=conv_skip.device)
+        grid = F.affine_grid(theta, conv_shape)
+        trans_feat = F.grid_sample(trans_feat, grid)
+        print(trans_feat.shape)
+
+
+
         bs, c, w, h = conv_skip.shape
         query_mask = torch.zeros_like(conv_skip[:, 0, :, :]).type(torch.bool)
         tgt = conv_skip.flatten(2).transpose(1, 2)
@@ -290,6 +306,16 @@ class DepthFusionMultiLevelNeck(nn.Module):
         reference_points_input = reference_points[:, :, None] * valid_ratios[:, None]
         
         if self.cross_att:
+            # DepthFormer add geometry constrain
+            masks = []
+            mask = torch.zeros_like(conv_skip[:, 0, :, :]).type(torch.bool)
+            masks.append(mask)
+            valid_ratios = torch.stack([self.get_valid_ratio(m) for m in masks], 1)
+            _spatial_shapes = []
+            _spatial_shape = (h, w)
+            _spatial_shapes.append(_spatial_shape)
+            _spatial_shapes = torch.as_tensor(_spatial_shapes, dtype=torch.long, device=src_flatten.device)
+            reference_points_input = self.get_reference_points(_spatial_shapes, valid_ratios, device=src_flatten.device)
             fusion_res = self.multi_att(self.with_pos_embed(tgt, query_embed), reference_points_input, src, spatial_shapes, level_start_index)
         else:
             fusion_res = tgt
