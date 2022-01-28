@@ -78,14 +78,16 @@ bash ./tools/dist_test.sh configs_depth/depthformer/depthformer_large_p4_w12_22k
 Or you can train the models by yourself (We will release this part of code later after the reviewing processing.):
 ```shell
 KITTI Training
-bash ./tools/dist_train.sh configs_depth/depthformer/depthformer_large_p4_w12_22k_kitti.py nfs/checkpoints/depthformer_swinL_kitti.pth num_gpus --work-dir xxx
+bash ./tools/dist_train.sh configs_depth/depthformer/depthformer_large_p4_w12_22k_kitti.py num_gpus --work-dir xxx
 
 NYU Training
-bash ./tools/dist_train.sh configs_depth/depthformer/depthformer_large_p4_w12_22k_nyu.py nfs/checkpoints/depthformer_swinL_nyu.pth num_gpus --work-dir xxx
+bash ./tools/dist_train.sh configs_depth/depthformer/depthformer_large_p4_w12_22k_nyu.py num_gpus --work-dir xxx
 ```
 
 ## Tips
 This is an anonymous reviewing version, all the experiment settings are provided in the mmdepth/configs.
+
+Modifications for Deform Cross-Att. have not been released since the paper is under review.
 
 We will add some scripts to prepare the datasets.
 
