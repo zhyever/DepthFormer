@@ -64,7 +64,9 @@ Put the split files (in ./splits) in dataset folder.
 
 Prepare the dataset following the annotation in mmdepth/datasets/kitti.py and mmdepth/datasets/nyu.py.
 
-Download our pre-trained models: [KITTI](https://drive.google.com/file/d/1I3z8zuDdEjrI1eP34xKVDAnGqbnTdPRi/view?usp=sharing) and [NYU](https://drive.google.com/file/d/1tjlsuubPa73hN8WZpn-2PObh39bd8buM/view?usp=sharing).
+Download our pre-trained models: [NYU](https://drive.google.com/file/d/18nrWkj19ORnJqJdylAsE2tx1BEEzuMCm/view?usp=sharing).
+
+<!-- [KITTI](https://drive.google.com/file/d/1I3z8zuDdEjrI1eP34xKVDAnGqbnTdPRi/view?usp=sharing) -->
 
 Direct Evaluation:
 ```shell
@@ -86,8 +88,6 @@ bash ./tools/dist_train.sh configs_depth/depthformer/depthformer_large_p4_w12_22
 
 ## Tips
 This is an anonymous reviewing version, all the experiment settings are provided in the mmdepth/configs.
-
-Modifications for Deform Cross-Att. have not been released since the paper is under review.
 
 We will add some scripts to prepare the datasets.
 

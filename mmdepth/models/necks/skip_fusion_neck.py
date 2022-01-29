@@ -181,6 +181,15 @@ class DepthFusionMultiLevelNeck(nn.Module):
                                     nn.ReLU(inplace=True)    
                                     )
 
+        self.domain_conv = nn.Sequential(
+                                    ConvModule(
+                                        self.embedding_dim * 2,
+                                        self.embedding_dim,
+                                        kernel_size=1,
+                                        norm_cfg=norm_cfg,
+                                        act_cfg=act_cfg)
+                                    )
+
     def get_valid_ratio(self, mask):
         _, H, W = mask.shape
         valid_H = torch.sum(~mask[:, :, 0], 1)
@@ -284,6 +293,7 @@ class DepthFusionMultiLevelNeck(nn.Module):
         # reference_points_input = reference_points[:, :, None] * valid_ratios[:, None]
 
         # deformable query and fusion
+        # domain specific feature generation
         conv_skip = self.query_proj_conv(_conv_skip)
         conv_shape = conv_skip.shape
         trans_feat = tran_feats_unfolded[0]
@@ -292,11 +302,10 @@ class DepthFusionMultiLevelNeck(nn.Module):
             [1,0,0],
             [0,1,0]
         ], dtype=torch.float, device=conv_skip.device)
+        theta = theta.repeat(conv_shape[0], 1, 1)
         grid = F.affine_grid(theta, conv_shape)
         trans_feat = F.grid_sample(trans_feat, grid)
-        print(trans_feat.shape)
-
-
+        conv_skip = self.domain_conv(torch.cat([conv_skip, trans_feat], dim=1))
 
         bs, c, w, h = conv_skip.shape
         query_mask = torch.zeros_like(conv_skip[:, 0, :, :]).type(torch.bool)
