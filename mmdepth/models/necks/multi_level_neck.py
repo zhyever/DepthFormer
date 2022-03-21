@@ -1,7 +1,7 @@
 # Copyright (c) OpenMMLab. All rights reserved.
 import torch.nn as nn
 from mmcv.cnn import ConvModule, xavier_init
-
+ 
 from mmseg.ops import resize
 from mmseg.models.builder import DEPTHNECK
 

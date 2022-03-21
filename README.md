@@ -1,7 +1,6 @@
 ## Introduction
 
 
-
 This is the official implementation of **DepthFormer: Exploiting Long-Range Correlation and Local Information for Accurate Monocular Depth Estimation**.
 
 You can download our quantitative results from [KITTI](https://drive.google.com/file/d/1N1H12Wj4HrDT0b4TCGwNzsQ8BsK6mtOD/view?usp=sharing) and [NYU](https://drive.google.com/file/d/1N1H12Wj4HrDT0b4TCGwNzsQ8BsK6mtOD/view?usp=sharing)
